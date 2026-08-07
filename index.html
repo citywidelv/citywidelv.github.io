@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>City Wide Facility Solutions | Nevada</title>
 <meta name="description" content="City Wide Facility Solutions of Nevada. One front door for the Sales Hub, Ops Hub, and Vendor Hub serving Las Vegas and Northern Nevada.">
+<!-- build 2026-08-07: added the Team Wall (moved from the Ops Hub, same Apps Script
+announcements feed, kind:auth to read + kind:announcement to post), plus a passcode
+gated Team Area with the Team & Admin links and the DBIS sheet library. Those links
+also remain on the Ops Hub; this page is an additional way to reach them. -->
 <link rel="icon" href="https://citywidelv.github.io/cw-ops-desk/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="https://citywidelv.github.io/cw-ops-desk/favicon-16x16.png">
@@ -36,10 +40,64 @@ header{position:sticky;top:0;background:var(--cw-white);border-bottom:1px solid 
 .card.sales{border-top-color:var(--cw-gold)}
 .card.sales a.btn{background:var(--cw-black)}
 .card.sales a.btn:hover{background:#1d1b18}
-.note{font-size:.72rem;color:var(--cw-grey);padding:6px 0 40px}
+.note{font-size:.72rem;color:var(--cw-grey);padding:6px 0 8px}
 footer{background:var(--cw-light);border-top:1px solid var(--cw-border);padding:22px 0;margin-top:24px}
 footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:.72rem;color:var(--cw-grey)}
 footer a{color:var(--cw-grey);font-weight:700;font-style:italic;text-decoration:none}
+
+/* ---------- Team Area (passcode gated, same passcode as the Ops Hub) ---------- */
+.teamzone{padding:26px 0 40px}
+.tz-head{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+.tz-head .accent{flex:none;width:22px;height:4px;background:var(--cw-red);border-radius:2px;align-self:center}
+.tz-head h2{font-size:1.2rem;font-weight:700}
+.tz-head .sub{font-size:.72rem;color:var(--cw-grey);text-transform:uppercase;letter-spacing:.08em}
+.hidden{display:none !important}
+.lockcard{max-width:460px;background:var(--cw-white);border:1px solid var(--cw-border);border-top:5px solid var(--cw-red);border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(45,42,38,.06)}
+.lockcard h3{font-size:1.05rem;font-weight:700}
+.lockcard p{font-size:.78rem;color:var(--cw-grey);margin:10px 0 14px}
+.lockcard input{width:100%;font-family:inherit;font-size:.9rem;border:1.5px solid var(--cw-border);border-radius:8px;padding:11px 12px;outline:none}
+.lockcard input:focus{border-color:var(--cw-red)}
+.lockcard button{width:100%;margin-top:10px;background:var(--cw-red);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:.9rem;padding:12px;border-radius:8px;cursor:pointer}
+.lockcard button:hover{background:#b31f27}
+.lockcard .err{color:var(--cw-red);font-size:.75rem;font-weight:700;margin-top:8px;min-height:1em}
+.lockcard .hint{font-size:.7rem;color:var(--cw-grey);margin-top:10px}
+.teamgrid{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+.wcard{background:var(--cw-white);border:1px solid var(--cw-border);border-top:5px solid var(--cw-red);border-radius:10px;padding:20px 20px 16px;box-shadow:0 2px 8px rgba(45,42,38,.06)}
+.wcard .whead{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.wcard .whead h3{font-size:1.05rem;font-weight:700}
+.wcard .whead .sub{font-size:.7rem;color:var(--cw-grey);text-transform:uppercase;letter-spacing:.08em}
+.composer{display:flex;gap:12px;border-bottom:1px solid var(--cw-border);padding-bottom:16px;margin-bottom:14px}
+.cav{flex:none;width:38px;height:38px;border-radius:50%;background:var(--cw-black);color:#fff;font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.cfields{flex:1;min-width:0}
+.cfields input,.cfields textarea{width:100%;font-family:inherit;font-size:.82rem;border:1.5px solid var(--cw-border);border-radius:8px;padding:9px 11px;outline:none;background:var(--cw-light)}
+.cfields input:focus,.cfields textarea:focus{border-color:var(--cw-red);background:#fff}
+.cfields textarea{margin-top:8px;min-height:74px;resize:vertical}
+.crow{display:flex;align-items:center;gap:12px;margin-top:9px}
+.crow button{background:var(--cw-red);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:.8rem;padding:10px 16px;border-radius:8px;cursor:pointer}
+.crow button:hover{background:#b31f27}
+.crow button:disabled{opacity:.6;cursor:default}
+.werr{color:var(--cw-red);font-size:.72rem;font-weight:700}
+.wpost{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--cw-border)}
+.wpost:last-child{border-bottom:none}
+.wpost.pinned{background:#fdf6e7;border-radius:8px;padding:13px 12px;border-bottom:none;margin-bottom:4px}
+.pav{flex:none;width:34px;height:34px;border-radius:50%;background:var(--cw-grey);color:#fff;font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.pbody{flex:1;min-width:0}
+.pmeta{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pname{font-size:.8rem;font-weight:700}
+.ppin{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:var(--cw-gold);color:var(--cw-black);border-radius:8px;padding:1px 8px}
+.pdate{font-size:.68rem;color:var(--cw-grey)}
+.pmsg{font-size:.8rem;margin-top:3px;word-wrap:break-word}
+.wempty{font-size:.78rem;color:var(--cw-grey);padding:10px 0}
+.wempty b{display:block;color:var(--cw-black)}
+.sidecard{background:var(--cw-white);border:1px solid var(--cw-border);border-top:5px solid var(--cw-black);border-radius:10px;padding:18px 18px 14px;box-shadow:0 2px 8px rgba(45,42,38,.06);margin-bottom:16px}
+.sidecard h3{font-size:.92rem;font-weight:700;margin-bottom:4px}
+.sidecard .sub{font-size:.68rem;color:var(--cw-grey);margin-bottom:8px}
+.sidecard .ghead{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--cw-grey);margin:10px 0 2px}
+.sidecard a.lnk{display:block;font-size:.78rem;font-weight:700;color:var(--cw-black);text-decoration:none;padding:6px 0;border-bottom:1px solid var(--cw-light)}
+.sidecard a.lnk:last-child{border-bottom:none}
+.sidecard a.lnk:hover{color:var(--cw-red)}
+.sidecard.dbis{border-top-color:var(--cw-red)}
+@media(max-width:820px){.teamgrid{grid-template-columns:1fr}}
 @media(max-width:640px){.hero h1{font-size:1.6rem}}
 </style>
 </head>
@@ -69,7 +127,7 @@ footer a{color:var(--cw-grey);font-weight:700;font-style:italic;text-decoration:
 <div class="card">
 <div class="kicker">Run the Work</div>
 <h2>Ops Hub</h2>
-<p>Every tool the operations team uses: opportunity postings, pricing calculators, building information sheets, and the Ops Wall. Team passcode required.</p>
+<p>Every tool the operations team uses: opportunity postings, pricing calculators, and building information sheets. Team passcode required.</p>
 <a class="btn" href="https://citywidelv.github.io/cw-ops-desk/">Open the Ops Hub</a>
 </div>
 <div class="card">
@@ -80,6 +138,66 @@ footer a{color:var(--cw-grey);font-weight:700;font-style:italic;text-decoration:
 </div>
 </div>
 <p class="note">Bookmark this page. Every hub is one click from here.</p>
+
+<div class="teamzone">
+<div class="tz-head"><span class="accent"></span><h2>Team Area</h2>
+<span class="sub">Team Wall, team links, and building sheets</span></div>
+
+<div class="lockcard" id="teamlock">
+<h3>Team members, sign in here</h3>
+<p>The Team Wall, the team and admin links, and the building sheet library live behind the team passcode. Same passcode as the Ops Hub.</p>
+<input type="password" id="tpc" placeholder="Team passcode" autocomplete="current-password">
+<button id="tenter">Enter</button>
+<div class="err" id="terr"></div>
+<div class="hint">Ask TJ if you do not have the passcode.</div>
+</div>
+
+<div class="teamgrid hidden" id="teamarea">
+<section class="wcard">
+<div class="whead"><h3>The Team Wall</h3>
+<span class="sub">Team announcements &amp; updates</span></div>
+<div class="composer">
+<span class="cav" id="cav">CW</span>
+<div class="cfields">
+<input id="wname" placeholder="Your name" maxlength="40">
+<textarea id="wmsg" placeholder="Post an update for the team..." maxlength="1000"></textarea>
+<div class="crow">
+<button id="wpost">Post to the Wall</button>
+<span class="werr" id="werr"></span>
+</div>
+</div>
+</div>
+<div id="wposts"></div>
+</section>
+<aside>
+<div class="sidecard dbis">
+<h3>Building Information Sheets</h3>
+<div class="sub">One living DBIS per account: access, schedule, alarms, locations, tenants, photos.</div>
+<a class="lnk" href="https://citywidelv.github.io/cw-ops-desk/building-sheets.html">Browse the Sheet Library</a>
+<a class="lnk" href="https://citywidelv.github.io/cw-ops-desk/building-sheet.html">New / Update a Sheet</a>
+</div>
+<div class="sidecard">
+<h3>Team &amp; Admin</h3>
+<div class="sub">Also available on the Ops Hub.</div>
+<div class="ghead">CRM &amp; Billing</div>
+<a class="lnk" href="https://gocitywide.crm.dynamics.com/main.aspx" target="_blank" rel="noopener">Open CW Sales CRM</a>
+<a class="lnk" href="https://supplysales.powerappsportals.com/SignIn?ReturnUrl=%2FCustomer-Select%2F" target="_blank" rel="noopener">Create a Supply Invoice</a>
+<a class="lnk" href="https://form.jotform.com/tjroberts/supply-item-request-for-field-sales" target="_blank" rel="noopener">Request a Supply Item</a>
+<a class="lnk" href="https://apps.powerapps.com/play/e/58e2128b-deac-e675-8cd1-7d879ca63711/a/a052bc89-2125-4efd-88e5-682f1d2dbcd0?tenantId=3b214a92-dd33-4a9c-a070-43f6783d144c&amp;hint=a842db25-40d4-46c0-b151-6ad085ee7345&amp;sourcetime=1756059511414&amp;source=portal" target="_blank" rel="noopener">Create an Extra Charge</a>
+<div class="ghead">Team</div>
+<a class="lnk" href="https://app.asana.com/" target="_blank" rel="noopener">Asana</a>
+<a class="lnk" href="https://citywidelv.github.io/cw-ops-desk/uniforms.html">Employee Uniforms</a>
+<a class="lnk" href="https://workforcenow.adp.com/" target="_blank" rel="noopener">ADP TotalSource</a>
+<a class="lnk" href="https://cwlv.printful.me/" target="_blank" rel="noopener">Order CW Merch</a>
+<div class="ghead">Supplier Ordering</div>
+<a class="lnk" href="https://citywidelv.github.io/cw-ops-desk/envirox.html">Order More EnvirOx</a>
+<a class="lnk" href="https://www.bradyindustries.com/" target="_blank" rel="noopener">Brady Industries</a>
+<a class="lnk" href="https://www.staplesadvantage.com/" target="_blank" rel="noopener">Staples Advantage</a>
+<a class="lnk" href="https://hdsupplysolutions.com/" target="_blank" rel="noopener">HD Supply Solutions</a>
+</div>
+</aside>
+</div>
+</div>
 </main>
 
 <footer>
@@ -88,5 +206,138 @@ footer a{color:var(--cw-grey);font-weight:700;font-style:italic;text-decoration:
 <a href="https://www.gocitywide.com">GoCityWide.com</a>
 </div>
 </footer>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+var NAMEKEY = "cwOpsName";
+
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function initials(name){
+var p = String(name||"").trim().split(/\s+/);
+var s = (p[0]||"").charAt(0) + (p.length>1 ? p[p.length-1].charAt(0) : "");
+return (s || "CW").toUpperCase();
+}
+function fmtDate(ts){
+var d = new Date(ts);
+if(isNaN(d)) return "";
+var now = new Date();
+var sameDay = d.toDateString() === now.toDateString();
+var t = d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+if(sameDay) return "Today " + t;
+var opts = {month:"short", day:"numeric"};
+if(d.getFullYear() !== now.getFullYear()) opts.year = "numeric";
+return d.toLocaleDateString([], opts) + " " + t;
+}
+
+/* ---------- The Team Wall (moved here from the Ops Hub) ---------- */
+var wallPosts = [];
+function renderWall(list){
+var posts = (list || []).slice();
+posts.sort(function(a,b){
+if(!!b.pinned !== !!a.pinned) return (!!b.pinned) - (!!a.pinned);
+return new Date(b.ts) - new Date(a.ts);
+});
+var host = document.getElementById("wposts");
+if(!posts.length){
+host.innerHTML = '<div class="wempty"><b>Nothing on the Wall yet.</b>Post the first update for the team.</div>';
+return;
+}
+var html = "";
+posts.forEach(function(p){
+html += '<div class="wpost' + (p.pinned ? ' pinned' : '') + '">' +
+'<span class="pav">' + esc(initials(p.name)) + '</span>' +
+'<div class="pbody"><div class="pmeta"><span class="pname">' + esc(p.name) + '</span>' +
+(p.pinned ? '<span class="ppin">Pinned</span>' : '') +
+'<span class="pdate">' + esc(fmtDate(p.ts)) + '</span></div>' +
+'<div class="pmsg">' + esc(p.message).replace(/\n/g,"<br>") + '</div></div></div>';
+});
+host.innerHTML = html;
+}
+function postWall(){
+var name = document.getElementById("wname").value.trim();
+var msg = document.getElementById("wmsg").value.trim();
+var err = document.getElementById("werr");
+var btn = document.getElementById("wpost");
+err.textContent = "";
+if(!name){ err.textContent = "Add your name."; return; }
+if(!msg){ err.textContent = "Write something first."; return; }
+var pass = "";
+try{ pass = localStorage.getItem(KEY) || ""; }catch(e){}
+btn.disabled = true; btn.textContent = "Posting...";
+fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
+body: JSON.stringify({ kind:"announcement", passcode: pass, name: name, message: msg }) })
+.then(function(r){ return r.json(); })
+.then(function(r){
+btn.disabled = false; btn.textContent = "Post to the Wall";
+if(r && r.ok && r.announcement){
+wallPosts.unshift(r.announcement);
+renderWall(wallPosts);
+document.getElementById("wmsg").value = "";
+try{ localStorage.setItem(NAMEKEY, name); }catch(e){}
+document.getElementById("cav").textContent = initials(name);
+} else {
+err.textContent = (r && r.error) ? r.error : "Could not post. Try again.";
+}
+})
+.catch(function(){
+btn.disabled = false; btn.textContent = "Post to the Wall";
+err.textContent = "Could not reach the server. Try again.";
+});
+}
+document.getElementById("wpost").addEventListener("click", postWall);
+document.getElementById("wname").addEventListener("input", function(){
+document.getElementById("cav").textContent = initials(this.value || "CW");
+});
+
+/* ---------- Team Area gate: same passcode + saved sign-in as the Ops Hub ---------- */
+function unlock(r){
+document.getElementById("teamlock").classList.add("hidden");
+document.getElementById("teamarea").classList.remove("hidden");
+wallPosts = (r && r.announcements) ? r.announcements : [];
+renderWall(wallPosts);
+var savedName = "";
+try{ savedName = localStorage.getItem(NAMEKEY) || ""; }catch(e){}
+if(savedName){
+document.getElementById("wname").value = savedName;
+document.getElementById("cav").textContent = initials(savedName);
+}
+}
+function tryPass(pass, isAuto){
+var btn = document.getElementById("tenter");
+var err = document.getElementById("terr");
+err.textContent = "";
+if(!pass){ if(!isAuto) err.textContent = "Enter the passcode."; return; }
+btn.disabled = true; btn.textContent = "Checking...";
+fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
+body: JSON.stringify({ kind:"auth", passcode: pass }) })
+.then(function(r){ return r.json(); })
+.then(function(r){
+btn.disabled = false; btn.textContent = "Enter";
+if(r && r.ok){
+try{ localStorage.setItem(KEY, pass); }catch(e){}
+unlock(r);
+} else {
+if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
+else { err.textContent = (r && r.error) ? r.error : "That passcode is not right."; }
+}
+})
+.catch(function(){
+btn.disabled = false; btn.textContent = "Enter";
+if(!isAuto) err.textContent = "Could not reach the server. Check your connection and try again.";
+});
+}
+document.getElementById("tenter").addEventListener("click", function(){
+tryPass(document.getElementById("tpc").value.trim(), false);
+});
+document.getElementById("tpc").addEventListener("keydown", function(e){
+if(e.key === "Enter") tryPass(this.value.trim(), false);
+});
+(function(){
+var saved = "";
+try{ saved = localStorage.getItem(KEY) || ""; }catch(e){}
+if(saved) tryPass(saved, true);
+})();
+</script>
 </body>
 </html>
