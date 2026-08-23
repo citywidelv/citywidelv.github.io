@@ -25,14 +25,31 @@ header{position:sticky;top:0;background:var(--cw-white);border-bottom:1px solid 
 .bar{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
 .bar img{height:38px;width:auto;display:block}
 .bar .tag{font-size:.72rem;color:var(--cw-grey);border-left:3px solid var(--cw-red);padding-left:10px;text-transform:uppercase;letter-spacing:.06em}
-.hero{background:linear-gradient(120deg,var(--cw-black) 0%,#3a3733 100%);color:#fff;padding:56px 0 48px;border-bottom:5px solid var(--cw-red)}
-.hero h1{font-size:2.25rem;font-weight:700;letter-spacing:.02em;line-height:1.2}
-.hero p{margin-top:12px;color:#d8d5d1;font-size:.95rem;max-width:640px}
+.hero{position:relative;overflow:hidden;background:var(--cw-black);color:#fff;border-bottom:5px solid var(--cw-red)}
+.hero .bg{position:absolute;inset:0;background:url('https://citywidelv.github.io/cw-vendor-hub/images/bldg-campus.jpg') center 35%/cover no-repeat;filter:grayscale(100%);opacity:.30}
+.hero .scrim{position:absolute;inset:0;background:linear-gradient(100deg,rgba(24,22,20,.96) 0%,rgba(24,22,20,.88) 46%,rgba(24,22,20,.55) 100%)}
+.hero .wrap{position:relative;z-index:1;display:flex;align-items:center;gap:48px;padding-top:60px;padding-bottom:60px}
+.hero .htext{flex:1;min-width:0}
+.hero h1{font-size:clamp(1.7rem,3.4vw,2.4rem);font-weight:700;letter-spacing:.02em;line-height:1.2}
+.hero h1::after{content:"";display:block;width:56px;height:4px;background:var(--cw-red);border-radius:2px;margin-top:14px}
+.hero p{margin-top:14px;color:#d8d5d1;font-size:.95rem;max-width:560px}
+.hero .cities{margin-top:18px;font-size:.66rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8f8b85}
+.hero .cities b{color:#fff}
+.hero .cities .dot{color:var(--cw-red);padding:0 8px}
 .hero .nv{color:var(--cw-gold);font-weight:700}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;padding:44px 0 10px}
+.hero .hphoto{flex:none;width:380px}
+.hero .hphoto .ph{aspect-ratio:16/10;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.14);box-shadow:0 22px 55px rgba(0,0,0,.5)}
+.hero .hphoto img{width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block}
+.hero .hphoto .pcap{margin-top:9px;font-size:.62rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#8f8b85;text-align:right;white-space:nowrap}
+.hero .hphoto .pcap b{color:#cfcdc9}
+@media(max-width:900px){.hero .hphoto{display:none}}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;padding:48px 0 12px}
 .card{background:var(--cw-white);border:1px solid var(--cw-border);border-top:5px solid var(--cw-red);border-radius:10px;padding:26px 24px 24px;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(45,42,38,.06);transition:transform .12s ease, box-shadow .12s ease}
 .card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(45,42,38,.12)}
-.card .kicker{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--cw-grey);margin-bottom:8px}
+.card .cphoto{margin:-26px -24px 18px;height:158px;overflow:hidden;position:relative}
+.card .cphoto img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
+.card:hover .cphoto img{transform:scale(1.04)}
+.card .kicker{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--cw-grey);margin-bottom:8px}
 .card h2{font-size:1.35rem;font-weight:700;line-height:1.25}
 .card p{font-size:.8rem;color:var(--cw-grey);margin:12px 0 20px;flex:1}
 .card a.btn{display:block;text-align:center;background:var(--cw-red);color:#fff;text-decoration:none;font-weight:700;font-size:.95rem;padding:13px 18px;border-radius:8px}
@@ -40,13 +57,14 @@ header{position:sticky;top:0;background:var(--cw-white);border-bottom:1px solid 
 .card.sales{border-top-color:var(--cw-gold)}
 .card.sales a.btn{background:var(--cw-black)}
 .card.sales a.btn:hover{background:#1d1b18}
-.note{font-size:.72rem;color:var(--cw-grey);padding:6px 0 8px}
-footer{background:var(--cw-light);border-top:1px solid var(--cw-border);padding:22px 0;margin-top:24px}
-footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:.72rem;color:var(--cw-grey)}
-footer a{color:var(--cw-grey);font-weight:700;font-style:italic;text-decoration:none}
+.note{font-size:.72rem;color:var(--cw-grey);padding:8px 0 10px}
+footer{background:var(--cw-black);padding:26px 0;margin-top:44px;border-top:4px solid var(--cw-red)}
+footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:.72rem;color:#cfcdc9}
+footer a{color:#fff;font-weight:700;font-style:italic;text-decoration:none}
+footer a:hover{text-decoration:underline}
 
 /* ---------- Team Area (passcode gated, same passcode as the Ops Hub) ---------- */
-.teamzone{padding:26px 0 40px}
+.teamzone{padding:34px 0 8px}
 .tz-head{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
 .tz-head .accent{flex:none;width:22px;height:4px;background:var(--cw-red);border-radius:2px;align-self:center}
 .tz-head h2{font-size:1.2rem;font-weight:700}
@@ -110,27 +128,38 @@ footer a{color:var(--cw-grey);font-weight:700;font-style:italic;text-decoration:
 </header>
 
 <section class="hero">
+<div class="bg"></div><div class="scrim"></div>
 <div class="wrap">
+<div class="htext">
 <h1>City Wide Facility Solutions <span class="nv">Nevada</span></h1>
 <p>One front door for every team tool across Las Vegas and Northern Nevada. Pick your hub and get to work.</p>
+<div class="cities"><b>Las Vegas</b><span class="dot">&bull;</span><b>Northern Nevada</b>&nbsp;&nbsp;Proudly serving the Silver State</div>
+</div>
+<div class="hphoto">
+<div class="ph"><img src="https://citywidelv.github.io/cw-ops-desk/images/fsm-uniform-building.jpg" alt="Facility Solutions Manager in City Wide uniform"></div>
+<div class="pcap">Facility Solutions Managers &middot; <b>Your One Team</b></div>
+</div>
 </div>
 </section>
 
 <main class="wrap">
 <div class="cards">
 <div class="card sales">
+<div class="cphoto"><img src="https://citywidelv.github.io/cw-ops-desk/images/fsm-phone.jpg" alt="" style="object-position:center 30%"></div>
 <div class="kicker">Sell the Work</div>
 <h2>Sales Hub</h2>
 <p>The call block scoreboard. Log appointments as you set them, watch the leaderboard, and track sales for the month.</p>
 <a class="btn" href="https://citywidelv.github.io/sales-hub/">Open the Sales Hub</a>
 </div>
 <div class="card">
+<div class="cphoto"><img src="https://citywidelv.github.io/cw-ops-desk/images/fsm-uniform-hallway.jpg" alt="" style="object-position:center 26%"></div>
 <div class="kicker">Run the Work</div>
 <h2>Ops Hub</h2>
 <p>Every tool the operations team uses: opportunity postings, pricing calculators, and building information sheets. Team passcode required.</p>
 <a class="btn" href="https://citywidelv.github.io/cw-ops-desk/">Open the Ops Hub</a>
 </div>
 <div class="card">
+<div class="cphoto"><img src="https://citywidelv.github.io/cw-vendor-hub/images/crew-office-cart-right.jpg" alt=""></div>
 <div class="kicker">Crew Partners</div>
 <h2>Vendor Hub</h2>
 <p>The Vendor Resource Center: open opportunities, crew guides, invoices and paperwork, document uploads, and the supply shop.</p>
