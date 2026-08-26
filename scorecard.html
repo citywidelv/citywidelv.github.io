@@ -32,7 +32,9 @@ header .tag{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:v
 header .back{margin-left:auto;font-size:12px;text-decoration:none;font-weight:bold}
 
 /* gate */
-#gate{max-width:420px;margin:70px auto;background:var(--cw-white);border:1px solid var(--cw-border);border-radius:8px;padding:28px;box-shadow:var(--shadow)}
+#gate{display:none;max-width:460px;margin:70px auto;background:var(--cw-white);border:1px solid var(--cw-border);border-radius:8px;padding:28px;box-shadow:var(--shadow)}
+#gate a{font-weight:bold}
+#boot{max-width:460px;margin:90px auto;text-align:center;color:var(--cw-grey);font-size:13px}
 #gate h1{font-size:19px;margin:0 0 6px}
 #gate p{color:var(--cw-grey);font-size:13px;margin:0 0 18px}
 #gate input{width:100%;padding:11px 12px;border:1px solid var(--cw-border);border-radius:6px;font-family:inherit;font-size:14px}
@@ -117,10 +119,12 @@ footer a{color:#fff;text-decoration:none}
   </div>
 </header>
 
+<div id="boot">Loading the scorecard</div>
+
 <div id="gate">
-  <h1>Team passcode</h1>
-  <p>This page shows performance by person. Use the same passcode as the Team Portal.</p>
-  <input id="tpass" type="password" autocomplete="current-password" placeholder="Passcode">
+  <h1>Open this from the Team Portal</h1>
+  <p>You are already signed in when you come through the <a href="https://citywidelv.github.io/">Team Portal</a> or the <a href="https://citywidelv.github.io/cw-ops-desk/">Ops Hub</a>. If you landed here directly, enter the team passcode once and this browser will remember it.</p>
+  <input id="tpass" type="password" autocomplete="current-password" placeholder="Team passcode">
   <button id="tenter" type="button">Enter</button>
   <div id="terr"></div>
 </div>
@@ -157,7 +161,7 @@ footer a{color:#fff;text-decoration:none}
 <script>
 var AUTH_HOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var FEED = "https://script.google.com/macros/s/AKfycbwJEEB53XpCcHP7YTQ9z8sSvhfdmY0TzQuI2bRyvlywSLT06iVzePxZlMsNTgmp5X-Wsg/exec";
-var KEY = "cw_team_auth";
+var KEY = "cwOpsHubPass";
 var POLL_MS = 60000;
 
 var PASS = "", DATA = null, PERIOD = "month", TERR = "ALL";
@@ -179,12 +183,19 @@ function tryPass(pass, isAuto){
     } else {
       if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
       else { err.textContent = (r && r.error) ? r.error : "That passcode is not right."; }
+      showGate();
     }
   })
   .catch(function(){
     btn.disabled = false; btn.textContent = "Enter";
     if(!isAuto) err.textContent = "Could not reach the server. Check your connection and try again.";
+    showGate();
   });
+}
+
+function showGate(){
+  document.getElementById("boot").style.display = "none";
+  document.getElementById("gate").style.display = "block";
 }
 document.getElementById("tenter").addEventListener("click", function(){
   tryPass(document.getElementById("tpass").value.trim(), false);
@@ -194,10 +205,11 @@ document.getElementById("tpass").addEventListener("keydown", function(e){
 });
 (function(){
   var saved = ""; try{ saved = localStorage.getItem(KEY) || ""; }catch(e){}
-  if(saved) tryPass(saved, true);
+  if(saved) tryPass(saved, true); else showGate();
 })();
 
 function unlock(){
+  document.getElementById("boot").style.display = "none";
   document.getElementById("gate").style.display = "none";
   document.getElementById("app").style.display = "block";
   load();
