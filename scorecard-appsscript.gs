@@ -74,7 +74,11 @@ function setup() {
   });
   var d = SS.getSheetByName('Sheet1');
   if (d && SS.getSheets().length > 1) SS.deleteSheet(d);
-  return 'setup ok';
+  // The editor's Run picker often ignores the selected function and runs this
+  // one, so seed here when the Roster tab is still empty. Idempotent.
+  var seeded = 'roster already populated';
+  if (SS.getSheetByName(TABS.roster).getLastRow() < 2) seeded = seedRosterAndGoals();
+  return 'setup ok, ' + seeded;
 }
 
 function installTrigger() {
