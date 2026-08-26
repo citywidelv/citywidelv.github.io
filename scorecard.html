@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operations Scorecard | City Wide Nevada</title>
+<link rel="icon" href="https://citywidelv.github.io/cw-ops-desk/favicon.ico">
+<link rel="apple-touch-icon" href="https://citywidelv.github.io/cw-ops-desk/apple-touch-icon.png">
+<style>
+:root{
+  --cw-red:#D22730; --cw-black:#2D2A26; --cw-grey:#636466; --cw-white:#FFFFFF;
+  --cw-teal:#0AA6A9; --cw-gold:#E5B423; --cw-light:#F5F5F5; --cw-border:#E5E5E5;
+  --good:#1B7F5A; --good-bg:#E4F1EB;
+  --warn:#8A6410; --warn-bg:#FBF0D6;
+  --bad:#B4222B;  --bad-bg:#FAE3E4;
+  --shadow:0 1px 2px rgba(45,42,38,.06), 0 8px 22px -18px rgba(45,42,38,.45);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--cw-light); color:var(--cw-black);
+  font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  font-size:14px; line-height:1.5;
+}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+a{color:var(--cw-red)}
+.num{font-variant-numeric:tabular-nums}
+
+header{background:var(--cw-white);border-bottom:3px solid var(--cw-red)}
+header .bar{display:flex;align-items:center;gap:16px;padding:14px 20px;flex-wrap:wrap}
+header img{height:38px;width:auto;flex:0 0 auto}
+header .tag{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cw-grey);font-weight:bold}
+header .back{margin-left:auto;font-size:12px;text-decoration:none;font-weight:bold}
+
+/* gate */
+#gate{max-width:420px;margin:70px auto;background:var(--cw-white);border:1px solid var(--cw-border);border-radius:8px;padding:28px;box-shadow:var(--shadow)}
+#gate h1{font-size:19px;margin:0 0 6px}
+#gate p{color:var(--cw-grey);font-size:13px;margin:0 0 18px}
+#gate input{width:100%;padding:11px 12px;border:1px solid var(--cw-border);border-radius:6px;font-family:inherit;font-size:14px}
+#gate button{margin-top:12px;width:100%;padding:11px;border:0;border-radius:6px;background:var(--cw-red);color:#fff;font-family:inherit;font-size:14px;font-weight:bold;cursor:pointer}
+#gate button:disabled{opacity:.6;cursor:default}
+#terr{color:var(--bad);font-size:12px;margin-top:10px;min-height:16px}
+
+main{padding:26px 0 70px;display:none}
+h1.page{font-size:24px;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--cw-grey);font-size:13px;margin:0 0 18px}
+
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.seg{display:inline-flex;background:var(--cw-white);border:1px solid var(--cw-border);border-radius:7px;padding:4px;gap:3px;box-shadow:var(--shadow)}
+.seg button{border:0;background:transparent;font-family:inherit;font-size:12.5px;font-weight:bold;color:var(--cw-grey);padding:7px 13px;border-radius:5px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--cw-black);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--cw-red);outline-offset:2px}
+.stamp{margin-left:auto;font-size:11.5px;color:var(--cw-grey)}
+.stamp b{color:var(--cw-black)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-right:6px;vertical-align:middle}
+.dot.stale{background:var(--cw-gold)}
+.dot.old{background:var(--bad)}
+
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:1px;background:var(--cw-border);border:1px solid var(--cw-border);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:22px}
+.stat{background:var(--cw-white);padding:15px 17px}
+.stat .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cw-grey);font-weight:bold;display:block;margin-bottom:5px}
+.stat .v{font-size:24px;font-weight:bold;letter-spacing:-.02em;display:block;line-height:1.1}
+.stat .n{font-size:11.5px;color:var(--cw-grey);display:block;margin-top:4px}
+
+h2.sec{font-size:15px;margin:26px 0 12px;letter-spacing:.02em}
+.people{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.card{background:var(--cw-white);border:1px solid var(--cw-border);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+.chead{padding:14px 17px;border-bottom:1px solid var(--cw-border);background:#FAFAFA}
+.chead .nm{font-size:16px;font-weight:bold;display:block}
+.chead .rl{font-size:11.5px;color:var(--cw-grey)}
+.chead .rt{display:flex;gap:18px;margin-top:9px}
+.chead .rt div{display:block}
+.chead .rt .k{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--cw-grey);font-weight:bold;display:block}
+.chead .rt .v{font-size:13.5px;font-weight:bold}
+.meters{padding:15px 17px;display:flex;flex-direction:column;gap:15px}
+.meter .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.meter .lbl{font-size:12px;font-weight:bold;color:var(--cw-black)}
+.meter .pct{font-size:13.5px;font-weight:bold}
+.bar{height:8px;background:var(--cw-border);border-radius:4px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;border-radius:4px}
+.meter .bot{display:flex;justify-content:space-between;font-size:11.5px;color:var(--cw-grey);margin-top:5px}
+.g-good .pct{color:var(--good)} .g-good .bar i{background:var(--good)}
+.g-warn .pct{color:var(--warn)} .g-warn .bar i{background:var(--cw-gold)}
+.g-bad  .pct{color:var(--bad)}  .g-bad  .bar i{background:var(--cw-red)}
+.g-none .pct{color:var(--cw-grey)} .g-none .bar i{background:var(--cw-grey)}
+.chips{padding:12px 17px 15px;border-top:1px solid var(--cw-border);display:flex;flex-wrap:wrap;gap:6px;background:#FAFAFA}
+.chip{font-size:11px;font-weight:bold;padding:4px 8px;border-radius:5px;background:var(--cw-light);border:1px solid var(--cw-border);color:var(--cw-grey)}
+.chip b{color:var(--cw-black)}
+.chip.ok{background:var(--good-bg);border-color:transparent;color:var(--good)} .chip.ok b{color:var(--good)}
+.chip.warn{background:var(--warn-bg);border-color:transparent;color:var(--warn)} .chip.warn b{color:var(--warn)}
+.chip.bad{background:var(--bad-bg);border-color:transparent;color:var(--bad)} .chip.bad b{color:var(--bad)}
+
+.tablewrap{overflow-x:auto;background:var(--cw-white);border:1px solid var(--cw-border);border-radius:8px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:680px;font-size:13px}
+th{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--cw-grey);text-align:right;padding:11px 14px;background:#FAFAFA;border-bottom:1px solid var(--cw-border);white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:9px 14px;border-bottom:1px solid var(--cw-border);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+td:first-child{text-align:left;white-space:normal}
+tr:last-child td{border-bottom:0}
+tr.grp td{background:#FAFAFA;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--cw-grey);font-weight:bold;text-align:left}
+td.tot{font-weight:bold}
+td.good{color:var(--good)} td.warn{color:var(--warn)} td.bad{color:var(--bad)}
+
+.notice{background:#FFF8E6;border:1px solid #EBD9A6;border-radius:8px;padding:12px 15px;font-size:12.5px;color:#6B5312;margin-bottom:18px}
+footer{background:var(--cw-black);color:#CFCBC6;font-size:11.5px;padding:16px 0;margin-top:40px}
+footer .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+footer a{color:#fff;text-decoration:none}
+@media (max-width:640px){ .people{grid-template-columns:1fr} .stamp{margin-left:0;width:100%} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+    <div class="tag">Operations Scorecard</div>
+    <a class="back" href="https://citywidelv.github.io/">Back to Team Portal</a>
+  </div>
+</header>
+
+<div id="gate">
+  <h1>Team passcode</h1>
+  <p>This page shows performance by person. Use the same passcode as the Team Portal.</p>
+  <input id="tpass" type="password" autocomplete="current-password" placeholder="Passcode">
+  <button id="tenter" type="button">Enter</button>
+  <div id="terr"></div>
+</div>
+
+<main id="app">
+  <div class="wrap">
+    <h1 class="page">Operations Scorecard</h1>
+    <p class="sub">Contract revenue is active agreement value. Extra charges are completed work orders. Inspections are completed inspection activities against each book's frequency.</p>
+
+    <div class="controls">
+      <div class="seg" id="periods"></div>
+      <div class="seg" id="territories"></div>
+      <div class="stamp" id="stamp"></div>
+    </div>
+
+    <div id="notice"></div>
+    <div class="summary" id="summary"></div>
+
+    <h2 class="sec">By person</h2>
+    <div class="people" id="people"></div>
+
+    <h2 class="sec">All measures</h2>
+    <div class="tablewrap"><table id="matrix"></table></div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>City Wide Facility Solutions | Las Vegas &amp; Northern Nevada</span>
+    <a href="https://www.gocitywide.com">GoCityWide.com</a>
+  </div>
+</footer>
+
+<script>
+var AUTH_HOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var FEED = "https://script.google.com/macros/s/AKfycbwJEEB53XpCcHP7YTQ9z8sSvhfdmY0TzQuI2bRyvlywSLT06iVzePxZlMsNTgmp5X-Wsg/exec";
+var KEY = "cw_team_auth";
+var POLL_MS = 60000;
+
+var PASS = "", DATA = null, PERIOD = "month", TERR = "ALL";
+
+/* ---------------------------------------------------------------- gate */
+function tryPass(pass, isAuto){
+  var btn = document.getElementById("tenter"), err = document.getElementById("terr");
+  err.textContent = "";
+  if(!pass){ if(!isAuto) err.textContent = "Enter the passcode."; return; }
+  btn.disabled = true; btn.textContent = "Checking...";
+  fetch(AUTH_HOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
+    body: JSON.stringify({ kind:"auth", passcode: pass }) })
+  .then(function(r){ return r.json(); })
+  .then(function(r){
+    btn.disabled = false; btn.textContent = "Enter";
+    if(r && r.ok){
+      try{ localStorage.setItem(KEY, pass); }catch(e){}
+      PASS = pass; unlock();
+    } else {
+      if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
+      else { err.textContent = (r && r.error) ? r.error : "That passcode is not right."; }
+    }
+  })
+  .catch(function(){
+    btn.disabled = false; btn.textContent = "Enter";
+    if(!isAuto) err.textContent = "Could not reach the server. Check your connection and try again.";
+  });
+}
+document.getElementById("tenter").addEventListener("click", function(){
+  tryPass(document.getElementById("tpass").value.trim(), false);
+});
+document.getElementById("tpass").addEventListener("keydown", function(e){
+  if(e.key === "Enter") tryPass(this.value.trim(), false);
+});
+(function(){
+  var saved = ""; try{ saved = localStorage.getItem(KEY) || ""; }catch(e){}
+  if(saved) tryPass(saved, true);
+})();
+
+function unlock(){
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  load();
+  setInterval(load, POLL_MS);
+}
+
+/* ---------------------------------------------------------------- data */
+function load(){
+  fetch(FEED + "?passcode=" + encodeURIComponent(PASS))
+    .then(function(r){ return r.json(); })
+    .then(function(r){ if(r && r.ok){ DATA = r.data; render(); } })
+    .catch(function(){});
+}
+
+/* ------------------------------------------------------------- periods */
+function pad(n){ return n < 10 ? "0" + n : "" + n; }
+function iso(d){ return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+function daysIn(y, m){ return new Date(y, m+1, 0).getDate(); }
+
+function periodDef(id){
+  var now = new Date(), y = now.getFullYear(), m = now.getMonth(), day = now.getDate();
+  if(id === "day")  return { label:"Today", from: iso(now), to: iso(now),
+                             months: 1 / daysIn(y,m), range: fmtDay(now) };
+  if(id === "week"){
+    var dow = (now.getDay() + 6) % 7;                 // Monday = 0
+    var mon = new Date(y, m, day - dow);
+    var elapsed = Math.round((new Date(y,m,day) - mon) / 864e5) + 1;
+    return { label:"This week", from: iso(mon), to: iso(now),
+             months: elapsed / daysIn(y,m), range: fmtDay(mon) + " to " + fmtDay(now) };
+  }
+  if(id === "month") return { label:"Month to date", from: iso(new Date(y,m,1)), to: iso(now),
+                              months: day / daysIn(y,m), range: fmtDay(new Date(y,m,1)) + " to " + fmtDay(now) };
+  if(id === "last"){
+    var ls = new Date(y, m-1, 1), le = new Date(y, m, 0);
+    return { label:"Last month", from: iso(ls), to: iso(le), months: 1,
+             range: ls.toLocaleDateString("en-US",{month:"long", year:"numeric"}) };
+  }
+  var js = new Date(y,0,1);
+  var elapsedDays = Math.round((new Date(y,m,day) - js) / 864e5) + 1;
+  return { label:"Year to date", from: iso(js), to: iso(now), months: elapsedDays / 30.44,
+           range: fmtDay(js) + " to " + fmtDay(now) };
+}
+function fmtDay(d){ return d.toLocaleDateString("en-US",{month:"short", day:"numeric"}); }
+
+/* --------------------------------------------------------------- model */
+function roster(){
+  var list = (DATA.roster || []).slice();
+  if(TERR !== "ALL") list = list.filter(function(r){ return String(r.territory) === TERR; });
+  list.sort(function(a,b){ return (Number(a.sort_order)||99) - (Number(b.sort_order)||99); });
+  return list;
+}
+function lookup(list, person){
+  for(var i=0;i<list.length;i++){ if(String(list[i].person) === person) return list[i]; }
+  return null;
+}
+function routeOf(p){ return lookup(DATA.route || [], p) || { accounts:0, agreement_lines:0, monthly_value:0, expected_inspections:0 }; }
+function pipeOf(p){ return lookup(DATA.pipeline || [], p) || { quotes:0, quote_value:0, quotes_expired:0, wo_lines:0, wo_value:0, wo_expired:0 }; }
+function fieldOf(p){ return lookup(DATA.field || [], p) || { neglected_21d:0, open_cases:0, star_accounts:0 }; }
+
+function goalFor(person, metric){
+  var g = (DATA.goals || []).filter(function(x){
+    return String(x.person) === person && String(x.metric) === metric;
+  });
+  return g.length ? g[g.length-1] : null;
+}
+
+function monthlyGoal(person, metric){
+  var g = goalFor(person, metric), r = routeOf(person);
+  if(!g){
+    if(metric === "inspections") return Number(r.expected_inspections) || 0;
+    return 0;
+  }
+  var basis = String(g.basis), v = Number(g.value) || 0;
+  if(basis === "pct_of_route") return (Number(r.monthly_value)||0) * v;
+  if(basis === "flat_monthly") return v;
+  if(basis === "expected")     return (Number(r.expected_inspections)||0) * (v || 1);
+  return v;
+}
+
+function actuals(person, def){
+  var out = { insp:0, cust:0, rated:0, woN:0, woAmt:0 };
+  (DATA.facts || []).forEach(function(f){
+    if(f.p !== person) return;
+    if(TERR !== "ALL" && f.t !== TERR) return;
+    if(f.d < def.from || f.d > def.to) return;
+    if(f.k === "inspection"){
+      out.insp += f.n;
+      if(f.rc !== null && f.rc !== undefined && f.rc !== ""){ out.cust += Number(f.rc); out.rated++; }
+    } else if(f.k === "workorder"){
+      out.woN += f.n; out.woAmt += f.a;
+    }
+  });
+  return out;
+}
+
+function metrics(person, def){
+  var a = actuals(person, def), r = routeOf(person);
+  var osGoal = monthlyGoal(person, "extra_charges") * def.months;
+  var iGoal  = monthlyGoal(person, "inspections") * def.months;
+  return {
+    a: a, route: r,
+    contract: (Number(r.monthly_value)||0) * def.months,
+    osGoal: osGoal, osPct: osGoal > 0 ? a.woAmt / osGoal : null,
+    iGoal: iGoal,  iPct: iGoal >= 0.5 ? a.insp / iGoal : null,
+    rating: a.rated ? a.cust / a.rated : null
+  };
+}
+
+/* --------------------------------------------------------------- view */
+function money(v){ return "$" + Math.round(v||0).toLocaleString("en-US"); }
+function moneyK(v){ v = v||0; return v >= 1000 ? "$" + Math.round(v/1000).toLocaleString("en-US") + "k" : "$" + Math.round(v); }
+function pct(v){ return v === null || v === undefined ? "&ndash;" : Math.round(v*100) + "%"; }
+function band(v){ return v === null || v === undefined ? "none" : v >= .95 ? "good" : v >= .85 ? "warn" : "bad"; }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+function renderControls(){
+  var ps = [["day","Today"],["week","This week"],["month","Month to date"],["last","Last month"],["ytd","Year to date"]];
+  document.getElementById("periods").innerHTML = ps.map(function(p){
+    return '<button type="button" data-p="'+p[0]+'" aria-pressed="'+(p[0]===PERIOD)+'">'+p[1]+'</button>';
+  }).join("");
+  var terrs = {};
+  (DATA.roster||[]).forEach(function(r){ terrs[String(r.territory)] = 1; });
+  var tl = Object.keys(terrs).sort();
+  var seg = document.getElementById("territories");
+  if(tl.length > 1){
+    seg.style.display = "";
+    seg.innerHTML = ['ALL'].concat(tl).map(function(t){
+      return '<button type="button" data-t="'+esc(t)+'" aria-pressed="'+(t===TERR)+'">'+(t==='ALL'?'Both':esc(t))+'</button>';
+    }).join("");
+  } else { seg.style.display = "none"; TERR = "ALL"; }
+
+  Array.prototype.forEach.call(document.querySelectorAll("#periods button"), function(b){
+    b.onclick = function(){ PERIOD = b.dataset.p; render(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#territories button"), function(b){
+    b.onclick = function(){ TERR = b.dataset.t; render(); };
+  });
+}
+
+function renderStamp(def){
+  var lr = DATA.lastRefresh, txt = "no refresh logged", cls = "old";
+  if(lr && lr.when){
+    var t = new Date(lr.when), mins = Math.round((Date.now() - t) / 60000);
+    txt = mins < 1 ? "just now" : mins + " min ago";
+    cls = mins <= 20 ? "" : mins <= 60 ? "stale" : "old";
+  }
+  document.getElementById("stamp").innerHTML =
+    '<span class="dot '+cls+'"></span>' + def.range + ' &nbsp;|&nbsp; CRM data <b>' + txt + '</b>';
+}
+
+function renderNotice(){
+  var missing = [];
+  var terrs = {}; (DATA.roster||[]).forEach(function(r){ terrs[String(r.territory)] = 1; });
+  if(!terrs.NNV) missing.push("Northern Nevada is not connected yet, this is Las Vegas only");
+  missing.push("Supply management is not shown, consumables revenue is not in CRM");
+  document.getElementById("notice").innerHTML = missing.length
+    ? '<div class="notice">' + missing.map(esc).join(". ") + '.</div>' : "";
+}
+
+function renderSummary(def){
+  var list = roster(), contract=0, os=0, osGoal=0, insp=0, iGoal=0, woN=0, pipeline=0;
+  list.forEach(function(p){
+    var m = metrics(String(p.person), def), q = pipeOf(String(p.person));
+    contract += m.contract; os += m.a.woAmt; osGoal += m.osGoal;
+    insp += m.a.insp; iGoal += m.iGoal; woN += m.a.woN;
+    pipeline += (Number(q.quote_value)||0) + (Number(q.wo_value)||0);
+  });
+  var osR = osGoal > 0 ? os/osGoal : null, iR = iGoal >= .5 ? insp/iGoal : null;
+  var cells = [
+    { k:"Contract revenue", v:money(contract), n:"Active agreement run rate" },
+    { k:"Extra charges billed", v:money(os), n:woN + " work orders completed" },
+    { k:"Extra charges to goal", v:pct(osR), n:"Goal " + money(osGoal), b:band(osR) },
+    { k:"Inspections complete", v:pct(iR), n:insp + " of " + Math.round(iGoal) + " expected", b:band(iR) },
+    { k:"Open pipeline", v:money(pipeline), n:"Quotes plus open work orders" }
+  ];
+  document.getElementById("summary").innerHTML = cells.map(function(c){
+    var col = c.b && c.b !== "none" ? ' style="color:var(--' + c.b + ')"' : "";
+    return '<div class="stat"><span class="k">'+c.k+'</span><span class="v num"'+col+'>'+c.v+'</span><span class="n">'+esc(c.n)+'</span></div>';
+  }).join("");
+}
+
+function renderPeople(def){
+  document.getElementById("people").innerHTML = roster().map(function(pr){
+    var person = String(pr.person), m = metrics(person, def), q = pipeOf(person), f = fieldOf(person);
+    function meter(label, actual, goal, ratio, fmt){
+      var b = band(ratio), w = ratio === null ? 0 : Math.min(ratio, 1.35) / 1.35 * 100;
+      return '<div class="meter g-'+b+'"><div class="top"><span class="lbl">'+label+'</span>'
+           + '<span class="pct num">'+pct(ratio)+'</span></div>'
+           + '<div class="bar"><i style="width:'+w+'%"></i></div>'
+           + '<div class="bot"><span class="num">'+fmt(actual)+'</span><span>goal <span class="num">'+fmt(goal)+'</span></span></div></div>';
+    }
+    var chips = [
+      { t:"Open quotes", n:q.quotes + " &middot; " + moneyK(q.quote_value), c:"" },
+      { t:"Quotes past start", n:q.quotes_expired, c: Number(q.quotes_expired) ? "bad" : "ok" },
+      { t:"Open WOs", n:q.wo_lines + " &middot; " + moneyK(q.wo_value), c:"" },
+      { t:"WOs past service date", n:q.wo_expired, c: Number(q.wo_expired) ? "bad" : "ok" },
+      { t:"Neglected 21d", n:f.neglected_21d, c: !Number(f.neglected_21d) ? "ok" : Number(f.neglected_21d) <= 3 ? "warn" : "bad" },
+      { t:"Open cases", n:f.open_cases, c: Number(f.open_cases) ? "warn" : "ok" },
+      { t:"STAR", n:f.star_accounts, c: Number(f.star_accounts) ? "warn" : "" }
+    ];
+    return '<div class="card"><div class="chead">'
+      + '<span class="nm">'+esc(person)+'</span><span class="rl">'+esc(pr.role || "")+'</span>'
+      + '<div class="rt">'
+      + '<div><span class="k">Route</span><span class="v num">'+money(m.route.monthly_value)+'/mo</span></div>'
+      + '<div><span class="k">Accounts</span><span class="v num">'+(m.route.accounts||0)+'</span></div>'
+      + '<div><span class="k">Avg rating</span><span class="v num">'+(m.rating !== null ? m.rating.toFixed(1) : "&ndash;")+'</span></div>'
+      + '</div></div>'
+      + '<div class="meters">'
+      + meter("Extra charges billed", m.a.woAmt, m.osGoal, m.osPct, money)
+      + meter("Inspections completed", m.a.insp, m.iGoal, m.iPct, function(v){ return Math.round(v); })
+      + '</div>'
+      + '<div class="chips">' + chips.map(function(c){
+          return '<span class="chip '+c.c+'">'+c.t+' <b class="num">'+c.n+'</b></span>'; }).join("") + '</div>'
+      + '</div>';
+  }).join("");
+}
+
+function renderMatrix(def){
+  var list = roster();
+  if(!list.length){ document.getElementById("matrix").innerHTML = ""; return; }
+  var M = list.map(function(p){ return metrics(String(p.person), def); });
+  var Q = list.map(function(p){ return pipeOf(String(p.person)); });
+  var F = list.map(function(p){ return fieldOf(String(p.person)); });
+  function sum(fn){ var t = 0; for(var i=0;i<list.length;i++) t += Number(fn(M[i], Q[i], F[i])) || 0; return t; }
+  function cell(v, cls){ return '<td class="num '+(cls||"")+'">'+v+'</td>'; }
+
+  var rows = [
+    ["grp","Portfolio"],
+    ["Accounts on agreement", function(i){ return M[i].route.accounts || 0; }, function(){ return sum(function(m){ return m.route.accounts; }); }],
+    ["Monthly route value", function(i){ return money(M[i].route.monthly_value); }, function(){ return money(sum(function(m){ return m.route.monthly_value; })); }],
+    ["Contract revenue this period", function(i){ return money(M[i].contract); }, function(){ return money(sum(function(m){ return m.contract; })); }],
+    ["grp","Extra charges, completed work orders"],
+    ["Goal", function(i){ return money(M[i].osGoal); }, function(){ return money(sum(function(m){ return m.osGoal; })); }],
+    ["Billed", function(i){ return money(M[i].a.woAmt); }, function(){ return money(sum(function(m){ return m.a.woAmt; })); }],
+    ["Percent to goal", function(i){ return pct(M[i].osPct); }, function(){ var g = sum(function(m){ return m.osGoal; }); return pct(g>0 ? sum(function(m){ return m.a.woAmt; })/g : null); }, "band-os"],
+    ["Work orders completed", function(i){ return M[i].a.woN; }, function(){ return sum(function(m){ return m.a.woN; }); }],
+    ["grp","Inspections"],
+    ["Expected", function(i){ return Math.round(M[i].iGoal); }, function(){ return Math.round(sum(function(m){ return m.iGoal; })); }],
+    ["Completed", function(i){ return M[i].a.insp; }, function(){ return sum(function(m){ return m.a.insp; }); }],
+    ["Percent complete", function(i){ return pct(M[i].iPct); }, function(){ var g = sum(function(m){ return m.iGoal; }); return pct(g>=.5 ? sum(function(m){ return m.a.insp; })/g : null); }, "band-i"],
+    ["Average customer rating", function(i){ return M[i].rating !== null ? M[i].rating.toFixed(1) : "&ndash;"; },
+      function(){ var c = sum(function(m){ return m.a.cust; }), n = sum(function(m){ return m.a.rated; }); return n ? (c/n).toFixed(1) : "&ndash;"; }],
+    ["grp","Pipeline, point in time"],
+    ["Open OS quotes", function(i){ return Q[i].quotes || 0; }, function(){ return sum(function(m,q){ return q.quotes; }); }],
+    ["Quote value", function(i){ return money(Q[i].quote_value); }, function(){ return money(sum(function(m,q){ return q.quote_value; })); }],
+    ["Quotes past estimated start", function(i){ return Q[i].quotes_expired || 0; }, function(){ return sum(function(m,q){ return q.quotes_expired; }); }, "zero"],
+    ["Open work order lines", function(i){ return Q[i].wo_lines || 0; }, function(){ return sum(function(m,q){ return q.wo_lines; }); }],
+    ["Open work order value", function(i){ return money(Q[i].wo_value); }, function(){ return money(sum(function(m,q){ return q.wo_value; })); }],
+    ["Lines past service date", function(i){ return Q[i].wo_expired || 0; }, function(){ return sum(function(m,q){ return q.wo_expired; }); }, "zero"],
+    ["grp","Field operations, point in time"],
+    ["Neglected 21+ days", function(i){ return F[i].neglected_21d || 0; }, function(){ return sum(function(m,q,f){ return f.neglected_21d; }); }, "neg"],
+    ["Open cases", function(i){ return F[i].open_cases || 0; }, function(){ return sum(function(m,q,f){ return f.open_cases; }); }, "zero"],
+    ["STAR accounts", function(i){ return F[i].star_accounts || 0; }, function(){ return sum(function(m,q,f){ return f.star_accounts; }); }]
+  ];
+
+  var head = '<thead><tr><th>Measure</th>'
+    + list.map(function(p){ return '<th>'+esc(String(p.person).split(" ")[0])+'</th>'; }).join("")
+    + '<th>Total</th></tr></thead>';
+
+  var body = rows.map(function(r){
+    if(r[0] === "grp") return '<tr class="grp"><td colspan="'+(list.length+2)+'">'+esc(r[1])+'</td></tr>';
+    var kind = r[3] || "";
+    var cells = list.map(function(p, i){
+      var v = r[1](i), cls = "";
+      if(kind === "band-os") cls = band(M[i].osPct);
+      else if(kind === "band-i") cls = band(M[i].iPct);
+      else if(kind === "zero") cls = Number(v) ? "bad" : "good";
+      else if(kind === "neg") cls = !Number(v) ? "good" : Number(v) <= 3 ? "warn" : "bad";
+      return cell(v, cls);
+    }).join("");
+    return '<tr><td>'+esc(r[0])+'</td>'+cells+cell(r[2](), "tot")+'</tr>';
+  }).join("");
+
+  document.getElementById("matrix").innerHTML = head + "<tbody>" + body + "</tbody>";
+}
+
+function render(){
+  if(!DATA) return;
+  var def = periodDef(PERIOD);
+  renderControls();
+  renderStamp(def);
+  renderNotice();
+  renderSummary(def);
+  renderPeople(def);
+  renderMatrix(def);
+}
+</script>
+</body>
+</html>
