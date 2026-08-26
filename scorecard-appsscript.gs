@@ -446,3 +446,31 @@ function exchangeCode(code) {
   SP.setProperty('REFRESH_TOKEN', b.refresh_token);
   return 'refresh token stored';
 }
+
+// ------------------------------------------------- one time seeding
+
+// Seeds the Roster and Goals tabs with the Las Vegas team and the
+// current goal rules. Safe to re-run, it replaces both tabs.
+function seedRosterAndGoals() {
+  var roster = [
+    ['LV', 'Jake Schmidt', 'Field Service Manager', 'Jake Schmidt', 1, true],
+    ['LV', 'Alejandro Manon', 'Field Service Manager', 'Alejandro Manon', 2, true],
+    ['LV', 'Brett Stephens', 'Field Service Manager', 'Brett Stephens', 3, true],
+    ['LV', 'Robert Krause', 'Director of Operations', 'Robert Krause', 4, true]
+  ];
+  var goals = [];
+  roster.forEach(function (r) {
+    goals.push([r[0], r[1], 'extra_charges', 'pct_of_route', 0.65, '2026-01-01', '65 percent of monthly route']);
+    goals.push([r[0], r[1], 'inspections', 'expected', 1, '2026-01-01', '100 percent of the frequency expectation']);
+  });
+  writeBlock_('Roster', roster);
+  writeBlock_('Goals', goals);
+  return 'seeded ' + roster.length + ' roster rows and ' + goals.length + ' goal rows';
+}
+
+function writeBlock_(name, rows) {
+  var sh = SS.getSheetByName(name);
+  var cols = HEADERS[name].length;
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, cols).clearContent();
+  if (rows.length) sh.getRange(2, 1, rows.length, cols).setValues(rows);
+}
