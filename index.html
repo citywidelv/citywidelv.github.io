@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>City Wide Facility Solutions | Nevada</title>
 <meta name="description" content="City Wide Facility Solutions of Nevada. One front door for the Sales Hub, Ops Hub, Vendor Hub, and BOM Hub serving Las Vegas and Northern Nevada.">
-<!-- build 2026-08-07: added the Team Wall (moved from the Ops Hub, same Apps Script
+<!-- build 2026-09-05: Team Area gate now shares the device unlock with the hubs (cw-auth.js); Team Apps links added to the sidecard.
+     build 2026-08-07: added the Team Wall (moved from the Ops Hub, same Apps Script
 announcements feed, kind:auth to read + kind:announcement to post), plus a passcode
 gated Team Area with the Team & Admin links and the DBIS sheet library. Those links
 also remain on the Ops Hub; this page is an additional way to reach them. -->
@@ -182,7 +183,7 @@ footer a:hover{text-decoration:underline}
 
 <div class="lockcard" id="teamlock">
 <h3>Team members, sign in here</h3>
-<p>The Team Wall, the team and admin links, and the building sheet library live behind the team passcode. Same passcode as the Ops Hub.</p>
+<p id="gnote">The Team Wall, the team and admin links, and the building sheet library live behind the team passcode. Same passcode as the Ops Hub. Enter it once and this browser stays unlocked until it changes.</p>
 <input type="password" id="tpc" placeholder="Team passcode" autocomplete="current-password">
 <button id="tenter">Enter</button>
 <div class="err" id="terr"></div>
@@ -226,11 +227,20 @@ footer a:hover{text-decoration:underline}
 <a class="lnk" href="https://citywidelv.github.io/cw-ops-desk/uniforms.html">Employee Uniforms</a>
 <a class="lnk" href="https://workforcenow.adp.com/" target="_blank" rel="noopener">ADP TotalSource</a>
 <a class="lnk" href="https://cwlv.printful.me/" target="_blank" rel="noopener">Order CW Merch</a>
+<a class="lnk" href="https://citywidelv.github.io/cw-bom-hub/team-emails.html">Team Emails by Position</a>
+<div class="ghead">Team Apps</div>
+<a class="lnk" href="https://slack.com/signin" target="_blank" rel="noopener">Slack</a>
+<a class="lnk" href="https://bookings.cloud.microsoft/bookings/homepage" target="_blank" rel="noopener">Microsoft Bookings</a>
+<a class="lnk" href="https://www.jotform.com/myforms/" target="_blank" rel="noopener">Jotform</a>
+<a class="lnk" href="https://app.zoominfo.com/" target="_blank" rel="noopener">ZoomInfo</a>
+<a class="lnk" href="https://cwfscorecloud.gocitywide.com/login" target="_blank" rel="noopener">CW Score Cloud</a>
 <div class="ghead">Supplier Ordering</div>
 <a class="lnk" href="https://citywidelv.github.io/cw-ops-desk/envirox.html">Order More EnvirOx</a>
 <a class="lnk" href="https://www.bradyindustries.com/" target="_blank" rel="noopener">Brady Industries</a>
 <a class="lnk" href="https://www.staplesadvantage.com/" target="_blank" rel="noopener">Staples Advantage</a>
 <a class="lnk" href="https://hdsupplysolutions.com/" target="_blank" rel="noopener">HD Supply Solutions</a>
+<a class="lnk" href="https://www.amazon.com/business" target="_blank" rel="noopener">Amazon Business</a>
+<a class="lnk" href="https://shopcitywide.mybrightsites.com/" target="_blank" rel="noopener">City Wide Company Store</a>
 </div>
 </aside>
 </div>
@@ -240,10 +250,11 @@ footer a:hover{text-decoration:underline}
 <footer>
 <div class="wrap">
 <span>City Wide Facility Solutions | Las Vegas &amp; Northern Nevada</span>
-<a href="https://www.gocitywide.com">GoCityWide.com</a>
+<a href="https://www.gocitywide.com" target="_blank" rel="noopener">GoCityWide.com</a>
 </div>
 </footer>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
@@ -300,7 +311,7 @@ err.textContent = "";
 if(!name){ err.textContent = "Add your name."; return; }
 if(!msg){ err.textContent = "Write something first."; return; }
 var pass = "";
-try{ pass = localStorage.getItem(KEY) || ""; }catch(e){}
+pass = CWAuth.get();
 btn.disabled = true; btn.textContent = "Posting...";
 fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
 body: JSON.stringify({ kind:"announcement", passcode: pass, name: name, message: msg }) })
@@ -315,6 +326,7 @@ try{ localStorage.setItem(NAMEKEY, name); }catch(e){}
 document.getElementById("cav").textContent = initials(name);
 } else {
 err.textContent = (r && r.error) ? r.error : "Could not post. Try again.";
+if(r && /passcode/i.test(r.error || "")){ CWAuth.clear(); location.reload(); }
 }
 })
 .catch(function(){
@@ -327,7 +339,6 @@ document.getElementById("wname").addEventListener("input", function(){
 document.getElementById("cav").textContent = initials(this.value || "CW");
 });
 
-/* ---------- Team Area gate: same passcode + saved sign-in as the Ops Hub ---------- */
 function unlock(r){
 document.getElementById("teamlock").classList.add("hidden");
 document.getElementById("teamarea").classList.remove("hidden");
@@ -340,41 +351,14 @@ document.getElementById("wname").value = savedName;
 document.getElementById("cav").textContent = initials(savedName);
 }
 }
-function tryPass(pass, isAuto){
-var btn = document.getElementById("tenter");
-var err = document.getElementById("terr");
-err.textContent = "";
-if(!pass){ if(!isAuto) err.textContent = "Enter the passcode."; return; }
-btn.disabled = true; btn.textContent = "Checking...";
-fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
-body: JSON.stringify({ kind:"auth", passcode: pass }) })
-.then(function(r){ return r.json(); })
-.then(function(r){
-btn.disabled = false; btn.textContent = "Enter";
-if(r && r.ok){
-try{ localStorage.setItem(KEY, pass); }catch(e){}
-unlock(r);
-} else {
-if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
-else { err.textContent = (r && r.error) ? r.error : "That passcode is not right."; }
-}
-})
-.catch(function(){
-btn.disabled = false; btn.textContent = "Enter";
-if(!isAuto) err.textContent = "Could not reach the server. Check your connection and try again.";
-});
-}
-document.getElementById("tenter").addEventListener("click", function(){
-tryPass(document.getElementById("tpc").value.trim(), false);
-});
-document.getElementById("tpc").addEventListener("keydown", function(e){
-if(e.key === "Enter") tryPass(this.value.trim(), false);
-});
-(function(){
-var saved = "";
-try{ saved = localStorage.getItem(KEY) || ""; }catch(e){}
-if(saved) tryPass(saved, true);
-})();
+/* ---------- Team Area gate: one team unlock per device (cw-auth.js). Same passcode
+and same saved sign-in as the Ops Hub, Sales Hub, and BOM Hub. The scorecard bounces
+here with ?next= when a browser has no saved passcode. ---------- */
+var BOUNCED = /[?&](next|reason)=/.test(location.search);
+CWAuth.hubGate({ hub:"portal", kind:"auth", input:"tpc", button:"tenter", err:"terr", note:"gnote", gate:"teamlock", app:"teamarea",
+onUnlock: function(pass, r){ unlock(r); if(!r) document.getElementById("wposts").innerHTML = '<div class="wempty">Loading the Wall...</div>'; },
+onValidated: function(r){ wallPosts = (r && r.announcements) ? r.announcements : []; renderWall(wallPosts); } });
+if(BOUNCED){ try{ document.getElementById("teamlock").scrollIntoView({block:"center"}); }catch(e){} }
 </script>
 </body>
 </html>

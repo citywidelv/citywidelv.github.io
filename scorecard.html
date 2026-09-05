@@ -121,12 +121,7 @@ footer a{color:#fff;text-decoration:none}
 
 <div id="boot">Loading the scorecard</div>
 
-<div id="gate">
-  <h1>Open this from the Team Portal</h1>
-  <p>You are already signed in when you come through the <a href="https://citywidelv.github.io/">Team Portal</a> or the <a href="https://citywidelv.github.io/cw-ops-desk/">Ops Hub</a>. If you landed here directly, enter the team passcode once and this browser will remember it.</p>
-  <input id="tpass" type="password" autocomplete="current-password" placeholder="Team passcode">
-  <button id="tenter" type="button">Enter</button>
-  <div id="terr"></div>
+<div id="gate" style="display:none"></div>
 </div>
 
 <main id="app">
@@ -154,10 +149,11 @@ footer a{color:#fff;text-decoration:none}
 <footer>
   <div class="wrap">
     <span>City Wide Facility Solutions | Las Vegas &amp; Northern Nevada</span>
-    <a href="https://www.gocitywide.com">GoCityWide.com</a>
+    <a href="https://www.gocitywide.com" target="_blank" rel="noopener">GoCityWide.com</a>
   </div>
 </footer>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var AUTH_HOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var FEED = "https://script.google.com/macros/s/AKfycbwJEEB53XpCcHP7YTQ9z8sSvhfdmY0TzQuI2bRyvlywSLT06iVzePxZlMsNTgmp5X-Wsg/exec";
@@ -166,46 +162,12 @@ var POLL_MS = 60000;
 
 var PASS = "", DATA = null, PERIOD = "month", TERR = "ALL";
 
-/* ---------------------------------------------------------------- gate */
-function tryPass(pass, isAuto){
-  var btn = document.getElementById("tenter"), err = document.getElementById("terr");
-  err.textContent = "";
-  if(!pass){ if(!isAuto) err.textContent = "Enter the passcode."; return; }
-  btn.disabled = true; btn.textContent = "Checking...";
-  fetch(AUTH_HOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
-    body: JSON.stringify({ kind:"auth", passcode: pass }) })
-  .then(function(r){ return r.json(); })
-  .then(function(r){
-    btn.disabled = false; btn.textContent = "Enter";
-    if(r && r.ok){
-      try{ localStorage.setItem(KEY, pass); }catch(e){}
-      PASS = pass; unlock();
-    } else {
-      if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
-      else { err.textContent = (r && r.error) ? r.error : "That passcode is not right."; }
-      showGate();
-    }
-  })
-  .catch(function(){
-    btn.disabled = false; btn.textContent = "Enter";
-    if(!isAuto) err.textContent = "Could not reach the server. Check your connection and try again.";
-    showGate();
-  });
-}
-
-function showGate(){
-  document.getElementById("boot").style.display = "none";
-  document.getElementById("gate").style.display = "block";
-}
-document.getElementById("tenter").addEventListener("click", function(){
-  tryPass(document.getElementById("tpass").value.trim(), false);
-});
-document.getElementById("tpass").addEventListener("keydown", function(e){
-  if(e.key === "Enter") tryPass(this.value.trim(), false);
-});
+/* ------------------------------------------------ gate (cw-auth.js, no box here) */
 (function(){
-  var saved = ""; try{ saved = localStorage.getItem(KEY) || ""; }catch(e){}
-  if(saved) tryPass(saved, true); else showGate();
+  var p = CWAuth.require({hub:"portal"});
+  if(!p) return;
+  PASS = p; unlock();
+  CWAuth.validate(p, "auth").then(function(res){ if(res.ok === false) CWAuth.locked("portal", "Wrong passcode."); });
 })();
 
 function unlock(){
@@ -220,7 +182,7 @@ function unlock(){
 function load(){
   fetch(FEED + "?passcode=" + encodeURIComponent(PASS))
     .then(function(r){ return r.json(); })
-    .then(function(r){ if(r && r.ok){ DATA = r.data; render(); } })
+    .then(function(r){ if(r && r.ok){ DATA = r.data; render(); } else if(r && /passcode/i.test(r.error || "")){ CWAuth.locked("portal", r.error); } })
     .catch(function(){});
 }
 
