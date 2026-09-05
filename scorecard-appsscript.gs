@@ -78,6 +78,7 @@ function setup() {
   // one, so seed here when the Roster tab is still empty. Idempotent.
   var seeded = 'roster already populated';
   if (SS.getSheetByName(TABS.roster).getLastRow() < 2) seeded = seedRosterAndGoals();
+  else seeded = syncRoster_();
   return 'setup ok, ' + seeded;
 }
 
@@ -455,21 +456,61 @@ function exchangeCode(code) {
 
 // Seeds the Roster and Goals tabs with the Las Vegas team and the
 // current goal rules. Safe to re-run, it replaces both tabs.
-function seedRosterAndGoals() {
-  var roster = [
-    ['LV', 'Jake Schmidt', 'Field Service Manager', 'Jake Schmidt', 1, true],
-    ['LV', 'Alejandro Manon', 'Field Service Manager', 'Alejandro Manon', 2, true],
-    ['LV', 'Brett Stephens', 'Field Service Manager', 'Brett Stephens', 3, true],
-    ['LV', 'Robert Krause', 'Director of Operations', 'Robert Krause', 4, true]
+var ROSTER_SEED = [
+  ['LV', 'Allison Donovan', 'Field Service Manager', 'Allison Donovan', 1, true],
+  ['LV', 'Jake Schmidt', 'Field Service Manager', 'Jake Schmidt', 2, true],
+  ['LV', 'Alejandro Manon', 'Field Service Manager', 'Alejandro Manon', 3, true],
+  ['LV', 'Brett Stephens', 'Field Service Manager', 'Brett Stephens', 4, true],
+  ['LV', 'Robert Krause', 'Director of Operations', 'Robert Krause', 5, true]
+];
+
+function goalRowsFor_(r) {
+  return [
+    [r[0], r[1], 'extra_charges', 'pct_of_route', 0.65, '2026-01-01', '65 percent of monthly route'],
+    [r[0], r[1], 'inspections', 'expected', 1, '2026-01-01', '100 percent of the frequency expectation']
   ];
+}
+
+function seedRosterAndGoals() {
   var goals = [];
-  roster.forEach(function (r) {
-    goals.push([r[0], r[1], 'extra_charges', 'pct_of_route', 0.65, '2026-01-01', '65 percent of monthly route']);
-    goals.push([r[0], r[1], 'inspections', 'expected', 1, '2026-01-01', '100 percent of the frequency expectation']);
-  });
-  writeBlock_('Roster', roster);
+  ROSTER_SEED.forEach(function (r) { goals = goals.concat(goalRowsFor_(r)); });
+  writeBlock_('Roster', ROSTER_SEED);
   writeBlock_('Goals', goals);
-  return 'seeded ' + roster.length + ' roster rows and ' + goals.length + ' goal rows';
+  return 'seeded ' + ROSTER_SEED.length + ' roster rows and ' + goals.length + ' goal rows';
+}
+
+// Adds anyone in ROSTER_SEED who is not already on the Roster tab, with their
+// default goal rows, and keeps sort_order matching the seed order. Never touches
+// rows that are already there, so hand edits to goals survive. Safe to re-run.
+function syncRoster_() {
+  var rSh = SS.getSheetByName('Roster');
+  var gSh = SS.getSheetByName('Goals');
+  var rv = rSh.getDataRange().getValues();
+  var have = {};
+  for (var i = 1; i < rv.length; i++) { if (rv[i][1]) have[String(rv[i][1]).trim().toLowerCase()] = true; }
+  var addR = ROSTER_SEED.filter(function (r) { return !have[String(r[1]).trim().toLowerCase()]; });
+  var order = {};
+  ROSTER_SEED.forEach(function (r) { order[String(r[1]).trim().toLowerCase()] = r[4]; });
+  var oCol = HEADERS.Roster.indexOf('sort_order') + 1;
+  var renumbered = 0;
+  for (var k = 1; k < rv.length; k++) {
+    var want = order[String(rv[k][1]).trim().toLowerCase()];
+    if (want && rv[k][oCol - 1] !== want) { rSh.getRange(k + 1, oCol).setValue(want); renumbered++; }
+  }
+  if (!addR.length) return 'roster already current, renumbered ' + renumbered;
+  rSh.getRange(rSh.getLastRow() + 1, 1, addR.length, HEADERS.Roster.length).setValues(addR);
+  var gv = gSh.getDataRange().getValues();
+  var gHave = {};
+  for (var j = 1; j < gv.length; j++) { gHave[String(gv[j][1]).trim().toLowerCase() + '|' + String(gv[j][2])] = true; }
+  var addG = [];
+  addR.forEach(function (r) {
+    goalRowsFor_(r).forEach(function (g) {
+      if (!gHave[String(g[1]).trim().toLowerCase() + '|' + String(g[2])]) addG.push(g);
+    });
+  });
+  if (addG.length) gSh.getRange(gSh.getLastRow() + 1, 1, addG.length, HEADERS.Goals.length).setValues(addG);
+  addR.forEach(function (r) { rSh.getRange(rSh.getLastRow(), oCol).setValue(order[String(r[1]).trim().toLowerCase()]); });
+  return 'added ' + addR.map(function (r) { return r[1]; }).join(', ') + ', renumbered ' + renumbered;
 }
 
 function writeBlock_(name, rows) {
