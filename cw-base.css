@@ -1,0 +1,28 @@
+/* CW base. Build 2026-09-05.
+   Platform-wide interaction and legibility rules, loaded AFTER each page's own <style>
+   so it wins ties. One file for the whole citywidelv.github.io origin; every hub, tool,
+   calculator, and vendor page links it from
+   <link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">.
+   Rules here are deliberately few. Layout, colour, and type scale stay in each page.
+   Source of the rules: cw-web-design skill (touch and focus states, mobile input guard,
+   reduced motion). Brand values from city-wide-brand-standards. */
+
+/* Keyboard focus is visible everywhere, in brand red, and is never removed. */
+:focus-visible{outline:2px solid #D22730 !important;outline-offset:2px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline-offset:0}
+
+/* Press feedback on pointer down. Hover does not exist on a phone; this does. */
+button:active,
+[class~="btn"]:active,[class~="qbtn"]:active,[class~="nbtn"]:active,[class~="gbtn"]:active,
+[class~="pick"]:active,[class~="tile"]:active,[class~="lnk"]:active,[class~="out"]:active,[class~="home"]:active{transform:scale(.97)}
+button,[class~="btn"],[class~="qbtn"],[class~="nbtn"],[class~="pick"],[class~="tile"]{transition-property:transform,background-color,border-color,color,box-shadow;transition-duration:90ms;transition-timing-function:ease-out}
+
+/* Phones. iOS Safari zooms the whole page when it focuses an input under 16px. */
+@media (max-width:640px){
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px !important}
+}
+
+/* People who asked their device for less motion get less motion. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+}
