@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>City Wide Facility Solutions | Nevada</title>
-<meta name="description" content="City Wide Facility Solutions of Nevada. One front door for the Sales Hub, Ops Hub, Vendor Hub, and BOM Hub serving Las Vegas and Northern Nevada.">
+<meta name="description" content="City Wide Facility Solutions of Nevada. One front door for the Sales Hub, Ops Hub, Vendor Hub, and Admin Hub serving Las Vegas and Northern Nevada.">
 <!-- build 2026-09-11: City Wide YOU (Docebo training portal) added to the Team Apps group of the Team & Admin sidecard. Same link lives on the Ops Hub.
      build 2026-09-05: Team Area gate now shares the device unlock with the hubs (cw-auth.js); Team Apps links added to the sidecard.
      build 2026-08-07: added the Team Wall (moved from the Ops Hub, same Apps Script
@@ -173,9 +173,9 @@ footer a:hover{text-decoration:underline}
 <div class="card bom">
 <div class="cphoto"><img src="https://citywidelv.github.io/cw-ops-desk/images/fsm-uniform-phone.jpg" alt="" style="object-position:center 25%"></div>
 <div class="kicker">Run the Business</div>
-<h2>BOM Hub</h2>
+<h2>Admin Hub</h2>
 <p>Business Operations Management: background check results, IC onboarding, Exhibit A requests, and the Business Ops Asana boards, live. Passcode required.</p>
-<a class="btn" href="https://citywidelv.github.io/cw-bom-hub/">Open the BOM Hub</a>
+<a class="btn" href="https://citywidelv.github.io/cw-admin-hub/">Open the Admin Hub</a>
 </div>
 </div>
 <p class="note">Bookmark this page. Every hub is one click from here.</p>
@@ -231,7 +231,7 @@ footer a:hover{text-decoration:underline}
 <a class="lnk" href="https://citywidelv.github.io/cw-ops-desk/uniforms.html">Employee Uniforms</a>
 <a class="lnk" href="https://workforcenow.adp.com/" target="_blank" rel="noopener">ADP TotalSource</a>
 <a class="lnk" href="https://cwlv.printful.me/" target="_blank" rel="noopener">Order CW Merch</a>
-<a class="lnk" href="https://citywidelv.github.io/cw-bom-hub/team-emails.html">Team Emails by Position</a>
+<a class="lnk" href="https://citywidelv.github.io/cw-admin-hub/team-emails.html">Team Emails by Position</a>
 <div class="ghead">Team Apps</div>
 <a class="lnk" href="https://slack.com/signin" target="_blank" rel="noopener">Slack</a>
 <a class="lnk" href="https://bookings.cloud.microsoft/bookings/homepage" target="_blank" rel="noopener">Microsoft Bookings</a>
@@ -357,7 +357,7 @@ document.getElementById("cav").textContent = initials(savedName);
 }
 }
 /* ---------- Team Area gate: one team unlock per device (cw-auth.js). Same passcode
-and same saved sign-in as the Ops Hub, Sales Hub, and BOM Hub. The scorecard bounces
+and same saved sign-in as the Ops Hub, Sales Hub, and Admin Hub. The scorecard bounces
 here with ?next= when a browser has no saved passcode. ---------- */
 var BOUNCED = /[?&](next|reason)=/.test(location.search);
 CWAuth.hubGate({ hub:"portal", kind:"auth", input:"tpc", button:"tenter", err:"terr", note:"gnote", gate:"teamlock", app:"teamarea",
