@@ -1,10 +1,16 @@
 /* nav.js for the Team Portal. Seeded from the page menu on 2026-09-13 by Claude.
    The Site Admin hub (cw-admin-hub/site-admin.html) republishes this file; do not edit by hand.
-   The page keeps its own MENU as a fallback if this file is missing or malformed. */
+   The page keeps its own markup as a fallback if this file is missing or malformed. */
 window.CW_NAV = {
  "hub": "portal",
  "label": "Team Portal",
  "menu": [
+  {
+   "label": "Site Admin",
+   "style": "strip",
+   "href": "https://citywidelv.github.io/cw-admin-hub/site-admin.html",
+   "note": "Menus, lists and the live email switches for every hub. Site Admin passcode required."
+  },
   {
    "label": "Building Information Sheets",
    "items": [

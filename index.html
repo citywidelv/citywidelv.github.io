@@ -84,6 +84,12 @@ footer a:hover{text-decoration:underline}
 .lockcard .err{color:var(--cw-red);font-size:12px;font-weight:700;margin-top:8px;min-height:1em}
 .lockcard .hint{font-size:12px;color:var(--cw-grey);margin-top:10px}
 .teamgrid{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+.adminstrip{grid-column:1/-1}
+.adminstrip a.strip{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--cw-white);border:1px solid var(--cw-border);border-left:5px solid var(--cw-red);border-radius:10px;padding:10px 16px;min-height:44px;text-decoration:none;color:var(--cw-black);box-shadow:0 2px 8px rgba(45,42,38,.06)}
+.adminstrip a.strip b{font-size:13px}
+.adminstrip a.strip span{font-size:12px;color:var(--cw-grey)}
+.adminstrip a.strip .go{margin-left:auto;font-weight:700;color:var(--cw-red)}
+.adminstrip a.strip:hover{border-color:var(--cw-red)}
 .wcard{background:var(--cw-white);border:1px solid var(--cw-border);border-top:5px solid var(--cw-red);border-radius:10px;padding:20px 20px 16px;box-shadow:0 2px 8px rgba(45,42,38,.06)}
 .wcard .whead{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .wcard .whead h3{font-size:1.05rem;font-weight:700}
@@ -195,6 +201,7 @@ footer a:hover{text-decoration:underline}
 </div>
 
 <div class="teamgrid hidden" id="teamarea">
+<div class="adminstrip" id="adminstrip"><a class="strip" href="https://citywidelv.github.io/cw-admin-hub/site-admin.html"><b>Site Admin</b><span>Menus, lists and the live email switches for every hub. Site Admin passcode required.</span><span class="go">Open &rarr;</span></a></div>
 <section class="wcard">
 <div class="whead"><h3>The Team Wall</h3>
 <span class="sub">Team announcements &amp; updates</span></div>
