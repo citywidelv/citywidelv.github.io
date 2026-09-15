@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>City Wide Facility Solutions | Nevada</title>
 <meta name="description" content="City Wide Facility Solutions of Nevada. One front door for the Sales Hub, Ops Hub, Vendor Hub, and Admin Hub serving Las Vegas and Northern Nevada.">
-<!-- build 2026-09-11: City Wide YOU (Docebo training portal) added to the Team Apps group of the Team & Admin sidecard. Same link lives on the Ops Hub.
+<!-- build 2026-09-15: the WHOLE portal is now behind the team passcode, not just the Team Area.
+     The hub cards are no longer public, so nobody outside the team can see that the Ops, Sales and
+     Admin hubs exist. The gate carries one public link to the Vendor Hub so a vendor sent here by
+     mistake can get where they were going instead of calling the office. Device unlock is remembered
+     for 90 days of no use, rolling, and is silent (cw-auth.js).
+     build 2026-09-11: City Wide YOU (Docebo training portal) added to the Team Apps group of the Team & Admin sidecard. Same link lives on the Ops Hub.
      build 2026-09-05: Team Area gate now shares the device unlock with the hubs (cw-auth.js); Team Apps links added to the sidecard.
      build 2026-08-07: added the Team Wall (moved from the Ops Hub, same Apps Script
 announcements feed, kind:auth to read + kind:announcement to post), plus a passcode
@@ -73,6 +78,11 @@ footer a:hover{text-decoration:underline}
 .tz-head h2{font-size:1.2rem;font-weight:700}
 .tz-head .sub{font-size:12px;color:var(--cw-grey);text-transform:uppercase;letter-spacing:.08em}
 .hidden{display:none !important}
+.gate{position:fixed;inset:0;z-index:999;background:var(--cw-light);display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
+.gate .lockcard{margin:0;width:100%}
+.gate .vend{margin-top:16px;padding-top:14px;border-top:1px solid var(--cw-border);font-size:12px;color:var(--cw-grey);line-height:1.5}
+.gate .vend a{color:var(--cw-red);font-weight:700;text-decoration:none}
+.gate .vend a:hover{text-decoration:underline}
 .lockcard{max-width:460px;text-align:center;background:var(--cw-white);border:1px solid var(--cw-border);border-top:5px solid var(--cw-red);border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(45,42,38,.06)}
 .lockcard h3{font-size:1.05rem;font-weight:700}
 .lockcard img{height:38px;width:auto;margin-bottom:12px}
@@ -131,6 +141,22 @@ footer a:hover{text-decoration:underline}
 <link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
 </head>
 <body>
+
+<div class="gate" id="gate">
+<div class="lockcard">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<h3>Nevada Team Portal</h3>
+<p id="gnote">Enter the team passcode. This browser stays signed in.</p>
+<input type="password" id="tpc" placeholder="Team passcode" autocomplete="current-password" autofocus>
+<button id="tenter">Enter</button>
+<div class="err" id="terr"></div>
+<div class="hint">Ask TJ if you do not have the passcode.</div>
+<div class="vend">Vendor or contractor? Your documents, invoices and opportunities are here:<br>
+<a href="https://citywidelv.github.io/cw-vendor-hub/">Open the Vendor Hub</a></div>
+</div>
+</div>
+
+<div id="app" class="hidden">
 <header>
 <div class="wrap bar">
 <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
@@ -190,17 +216,7 @@ footer a:hover{text-decoration:underline}
 <div class="tz-head"><span class="accent"></span><h2>Team Area</h2>
 <span class="sub">Team Wall, team links, and building sheets</span></div>
 
-<div class="lockcard" id="teamlock">
-<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
-<h3>Team members, sign in here</h3>
-<p id="gnote">The Team Wall, the team and admin links, and the building sheet library live behind the team passcode. Same passcode as the Ops Hub. Enter it once and this browser stays unlocked until it changes.</p>
-<input type="password" id="tpc" placeholder="Team passcode" autocomplete="current-password">
-<button id="tenter">Enter</button>
-<div class="err" id="terr"></div>
-<div class="hint">Ask TJ if you do not have the passcode.</div>
-</div>
-
-<div class="teamgrid hidden" id="teamarea">
+<div class="teamgrid" id="teamarea">
 <div class="adminstrip" id="adminstrip"><a class="strip" href="https://citywidelv.github.io/cw-admin-hub/site-admin.html"><b>Site Admin</b><span>Menus, lists and the live email switches for every hub. Site Admin passcode required.</span><span class="go">Open &rarr;</span></a></div>
 <section class="wcard">
 <div class="whead"><h3>The Team Wall</h3>
@@ -265,6 +281,7 @@ footer a:hover{text-decoration:underline}
 <a href="https://www.gocitywide.com" target="_blank" rel="noopener">GoCityWide.com</a>
 </div>
 </footer>
+</div>
 
 <script src="nav.js"></script>
 <script src="https://citywidelv.github.io/cw-ops-desk/cw-nav.js"></script>
@@ -355,8 +372,6 @@ document.getElementById("cav").textContent = initials(this.value || "CW");
 });
 
 function unlock(r){
-document.getElementById("teamlock").classList.add("hidden");
-document.getElementById("teamarea").classList.remove("hidden");
 wallPosts = (r && r.announcements) ? r.announcements : [];
 renderWall(wallPosts);
 var savedName = "";
@@ -369,11 +384,9 @@ document.getElementById("cav").textContent = initials(savedName);
 /* ---------- Team Area gate: one team unlock per device (cw-auth.js). Same passcode
 and same saved sign-in as the Ops Hub, Sales Hub, and Admin Hub. The scorecard bounces
 here with ?next= when a browser has no saved passcode. ---------- */
-var BOUNCED = /[?&](next|reason)=/.test(location.search);
-CWAuth.hubGate({ hub:"portal", kind:"auth", input:"tpc", button:"tenter", err:"terr", note:"gnote", gate:"teamlock", app:"teamarea",
+CWAuth.hubGate({ hub:"portal", kind:"auth", input:"tpc", button:"tenter", err:"terr", note:"gnote", gate:"gate", app:"app",
 onUnlock: function(pass, r){ unlock(r); if(!r) document.getElementById("wposts").innerHTML = '<div class="wempty">Loading the Wall...</div>'; },
 onValidated: function(r){ wallPosts = (r && r.announcements) ? r.announcements : []; renderWall(wallPosts); } });
-if(BOUNCED){ try{ document.getElementById("teamlock").scrollIntoView({block:"center"}); }catch(e){} }
 </script>
 </body>
 </html>
