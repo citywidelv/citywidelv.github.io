@@ -457,7 +457,7 @@ function exchangeCode(code) {
 // Seeds the Roster and Goals tabs with the Las Vegas team and the
 // current goal rules. Safe to re-run, it replaces both tabs.
 var ROSTER_SEED = [
-  ['LV', 'Allison Donovan', 'Field Service Manager', 'Allison Donovan', 1, true],
+  ['LV', 'Allison Donavan', 'Field Service Manager', 'Allison Donavan', 1, true],
   ['LV', 'Jake Schmidt', 'Field Service Manager', 'Jake Schmidt', 2, true],
   ['LV', 'Alejandro Manon', 'Field Service Manager', 'Alejandro Manon', 3, true],
   ['LV', 'Brett Stephens', 'Field Service Manager', 'Brett Stephens', 4, true],
