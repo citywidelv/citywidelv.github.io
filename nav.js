@@ -126,7 +126,7 @@ window.CW_NAV = {
      "href": "https://shopcitywide.mybrightsites.com/"
     }
    ],
-   "note": "Also available on the Ops Hub."
+   "note": "Also on the Ops Hub and the Admin Hub."
   }
  ]
 };
