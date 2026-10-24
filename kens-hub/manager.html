@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Manager Desk | Kens Hub</title>
+<!-- build 2026-10-23: Manager Desk for the porter vendor's site manager. Own passcode (script property
+     KH_MGR_PASSCODE, kind kh_mgr_auth, localStorage cwKensMgrPass). Doors (no approval step, TJ Oct 24 2026):
+     porters' daily checklists, read every report and request, request porter supplies, request building
+     supplies. The manager never sees Ken's Foods contact details and never sends anything to the plant.
+     No names baked in: whoever holds the passcode is the manager. No fetch on load. -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="stylesheet" href="kh.css">
+<style>
+.tiles{grid-template-columns:1fr 1fr}
+@media(max-width:600px){.tiles{grid-template-columns:1fr}}
+.tile{min-height:0;padding:18px}
+.tile .ic{width:44px;height:44px;border-radius:12px;background:var(--ov-cream);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:10px}
+.tile.black .ic{background:#efeeec}
+.rules{font-size:13px;color:var(--grey);line-height:1.55}
+.rules b{color:var(--black)}
+.who{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.who input{flex:1;min-width:180px}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+
+<div class="gate" id="gate">
+<div class="lockcard">
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<h3>Manager Desk</h3>
+<div class="for">Ken's Foods porter program, 3 shifts a day</div>
+<p>Enter the Manager Desk passcode City Wide gave you. This device stays signed in.</p>
+<input type="password" id="pc" placeholder="Passcode" autocomplete="current-password" autofocus>
+<button class="btn" id="enter">Enter</button>
+<div class="err" id="err"></div>
+<div class="hint">Need the passcode? Ask your City Wide Facility Solutions Manager or call 702-483-1874.</div>
+</div>
+</div>
+
+<div id="app" class="hidden">
+<header class="top">
+<div class="bar">
+<a class="back" href="index.html">&larr; Kens Hub</a>
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>Manager Desk</b>Kens Hub</div>
+</div>
+</header>
+
+<main class="wrap">
+<h1>Manager Desk</h1>
+<div class="lead">Your porters' work across the the Ken's Foods plant, in one place.</div>
+
+<div class="card plain">
+<div class="field" style="margin:0"><label for="me">Your name</label>
+<div class="who"><input type="text" id="me" placeholder="First and last name" autocomplete="name"></div>
+<div class="hint">Goes on every request you send. Remembered on this device.</div></div>
+</div>
+
+<div class="tiles">
+<a class="tile" href="history.html">
+<div class="ic">&#9745;</div>
+<h2>Rounds and shift reports</h2>
+<p>Every area round and end-of-shift report the porters log, three shifts a day, with the task-by-task detail and photos.</p>
+<div class="go">Open the history &rarr;</div>
+</a>
+<a class="tile olive" href="history.html">
+<div class="ic">&#128172;</div>
+<h2>Messages and requests</h2>
+<p>What Ken's Foods sent in, porter emergencies and maintenance issues, and your own supply requests. Filter the history by Messages.</p>
+<div class="go">Read messages &rarr;</div>
+</a>
+<a class="tile black" href="manager-supplies.html?t=porter">
+<div class="ic">&#129529;</div>
+<h2>Request porter supplies</h2>
+<p>Chemicals, cloths, mop heads, liners, gloves, cart parts. Tick what the crew is low on and send it to City Wide.</p>
+<div class="go">Request supplies &rarr;</div>
+</a>
+<a class="tile black" href="manager-supplies.html?t=building">
+<div class="ic">&#129531;</div>
+<h2>Request building supplies</h2>
+<p>Paper towels, toilet paper, soap, liners, air care. Tell City Wide which area of the plant is running low.</p>
+<div class="go">Report the plant low &rarr;</div>
+</a>
+</div>
+
+<div class="card plain rules">
+<b>How this desk works.</b> Nothing needs your approval: every round and shift report the porters log goes to Ken's Foods in City Wide's 5 PM summary, and you get the porter copy of that summary. Please do not contact the plant directly. Supply requests go to your City Wide Facility Solutions Manager, who orders or arranges them.
+Something urgent on a site right now? Call City Wide at <a href="tel:7024831874">702-483-1874</a>.
+</div>
+</main>
+
+<footer class="foot"><span class="line">City Wide Facility Solutions, Las Vegas &middot; <a href="tel:7024831874">702-483-1874</a></span></footer>
+</div>
+
+<script src="kh-shared.js"></script>
+<script>
+(function(){
+var me = KH.$("me");
+try { me.value = localStorage.getItem("cwKhMgrName") || ""; } catch(e){}
+me.addEventListener("change", function(){ try { localStorage.setItem("cwKhMgrName", me.value.trim()); } catch(e){} });
+KH.mgrGate({ input:"pc", button:"enter", err:"err", gate:"gate", app:"app" });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Area Checklist | Kens Hub</title>
+<!-- build 2026-10-24: Area round checklist, the hub version of the Ken's Foods Area Cleaning Checklist (Detailed)
+     Jotform. ?area=<key> (the QR code in each area) locks the area; otherwise the porter picks it. Every task is
+     Yes / No, the thorough round adds the DAILY tasks, weekly / monthly tasks are ticked only when done. Saves to
+     the phone as the porter works, then kind kh_submit + kh_photo_put. No email on submit; it rides the digest. -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="stylesheet" href="kh.css">
+<style>
+.brands img.ovl{height:36px}
+.yn{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--light);min-height:52px}
+.yn:last-child{border-bottom:0}
+.yn .q{flex:1;font-size:14px;line-height:1.35}
+.yn .q small{display:block;color:var(--grey);font-size:12px;margin-top:2px}
+.yn .b{display:flex;gap:6px;flex:none}
+.yn .b button{min-width:52px;min-height:40px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:inherit;font-weight:700;font-size:13px;color:var(--grey);cursor:pointer}
+.yn .b button.yes.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.yn .b button.no.on{background:var(--red);border-color:var(--red);color:#fff}
+.grp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--grey);margin:14px 0 4px;display:flex;align-items:center;gap:10px}
+.grp .all{margin-left:auto;font-size:12px;text-transform:none;letter-spacing:0;font-weight:700;color:var(--red);background:none;border:0;cursor:pointer;font-family:inherit;min-height:32px}
+.lock{font-size:13px;color:var(--grey)}
+.lock b{color:var(--black);font-size:15px}
+.closed{font-size:12px;color:var(--red);font-weight:700}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="top">
+<div class="bar">
+<a class="back" href="porter.html">&larr; Porter Desk</a>
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>Area Checklist</b>Kens Hub</div>
+</div>
+</header>
+
+<main class="wrap" id="form">
+<h1>Area Checklist <span style="font-weight:400;color:var(--grey);font-size:1rem">/ Lista por área</span></h1>
+<div class="lead">Log the round you just finished in this area. Answer Yes or No for each task. / Registre la ronda que acaba de terminar. Responda Sí o No en cada tarea.</div>
+
+<div class="card" id="s1">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px"><h2 style="margin:0">This round</h2><button type="button" class="btn ghost sm" id="reset">Start over</button></div>
+<div class="field" id="areaField"><label for="area">Area <span class="req">*</span></label><select id="area"></select></div>
+<div class="field hidden" id="areaLock"><div class="lock">Area <b id="areaName"></b><span id="areaSub"></span> <a href="checklist.html" style="font-size:12px;margin-left:8px">change</a></div></div>
+<div class="row2">
+<div class="field"><label for="round">Scheduled round <span class="req">*</span></label><select id="round"></select></div>
+<div class="field"><label for="shift">Shift <span class="req">*</span></label><select id="shift"></select></div>
+</div>
+<div class="row2">
+<div class="field"><label for="porter">Porter name <span class="req">*</span></label><input type="text" id="porter" autocomplete="name" placeholder="First and last name"></div>
+<div class="field"><label for="date">Date <span class="req">*</span></label><input type="date" id="date"></div>
+</div>
+<div class="closed hidden" id="closedNote">This area is closed to the plant while it is cleaned.</div>
+</div>
+
+<div class="card olive" id="tasksCard">
+<h2>Tasks <span style="font-weight:400;color:var(--grey);font-size:.9rem">/ Tareas</span></h2>
+<div id="tasks"></div>
+</div>
+
+<div class="card plain">
+<h2>Photo and notes <span style="font-weight:400;color:var(--grey);font-size:.9rem">(optional)</span></h2>
+<div class="sub">Damage, something that needs attention, or proof of a deep clean. / Daños, algo que necesita atención, o prueba de una limpieza profunda.</div>
+<div class="photos"><div class="pgrid" id="pgrid"></div></div>
+<div class="field" style="margin-top:12px"><label for="notes">Anything to report for this area? / Algo que reportar?</label><textarea id="notes" placeholder="Short and specific. Example: paper towel dispenser by the north door is broken."></textarea></div>
+<div class="err" id="ferr"></div>
+</div>
+<input type="file" id="pfile" accept="image/*" class="hidden">
+</main>
+
+<div class="sticky" id="bar">
+<div class="in"><div class="st" id="barst"></div><button class="btn" id="submit">Submit round</button></div>
+</div>
+
+<main class="wrap hidden" id="doneWrap">
+<div class="card plain done">
+<div class="big">&#10003;</div>
+<h2>Round logged</h2>
+<p id="doneText"></p>
+<div id="donePhotos"></div>
+<div class="kv" style="justify-content:center;margin:14px 0"><span>Reference <span class="ref" id="doneRef"></span></span></div>
+<div class="btnrow"><a class="btn dark" href="checklist.html">Log another area</a><a class="btn ghost" href="porter.html">Back to the Porter Desk</a></div>
+</div>
+</main>
+
+<script src="kh-shared.js"></script>
+<script>
+(function(){
+var $ = KH.$, esc = KH.esc;
+if(!KH.require()) return;
+var P = KH.params();
+var LOCKED = KH.areaByKey(P.area || "");
+var DRAFT = "area_" + (LOCKED ? LOCKED.key : "pick");
+
+function nearestRound(def){
+  if(!def || !def.rounds.length) return "";
+  var now = new Date(), mins = now.getHours() * 60 + now.getMinutes(), best = def.rounds[0], bestD = 1e9;
+  def.rounds.forEach(function(r){ var m = r.match(/(\d+):(\d+)\s*(AM|PM)/i); if(!m) return; var h = Number(m[1]) % 12 + (/PM/i.test(m[3]) ? 12 : 0); var t = h * 60 + Number(m[2]); var d = Math.abs(mins - t); d = Math.min(d, 1440 - d); if(d < bestD){ bestD = d; best = r; } });
+  return best;
+}
+function buildTasks(def, round){
+  if(!def) return [];
+  var list = def.every.map(function(t){ return { q:t, f:"every", a:"" }; });
+  if(def.daily && round === def.thorough) list = list.concat(def.daily.map(function(t){ return { q:t, f:"daily", a:"" }; }));
+  list = list.concat((def.periodic || []).map(function(t){ return { q:t, f:"periodic", a:"" }; }));
+  return list;
+}
+function blank(){
+  var def = LOCKED, round = nearestRound(def);
+  return { id: KH.uid("kha_"), kind:"area", area: def ? def.key : "", area_name: def ? def.name : "", round: round, shift: KH.shiftNow(), shift_name: KH.shiftFor(KH.shiftNow()).name,
+    porter: KH.porterName(), service_date: KH.today(), tasks: buildTasks(def, round), deep:"", notes:"", photos:[], status:"New" };
+}
+var RESTORED = KH.loadDraft(DRAFT);
+var S = RESTORED || blank();
+if(!S.id || !/^kha_/.test(S.id)){ S = blank(); RESTORED = null; }
+if(LOCKED){ S.area = LOCKED.key; S.area_name = LOCKED.name; }
+var THUMBS = {};
+var saveT = null;
+function persist(){ clearTimeout(saveT); saveT = setTimeout(function(){ KH.saveDraft(DRAFT, S); }, 200); }
+function def(){ return KH.areaByKey(S.area); }
+
+/* ---------- top fields ---------- */
+if(LOCKED){ $("areaField").classList.add("hidden"); $("areaLock").classList.remove("hidden"); $("areaName").textContent = LOCKED.name; $("areaSub").textContent = LOCKED.sub ? " " + LOCKED.sub : ""; }
+else { $("area").innerHTML = KH.areaOptions(); $("area").value = S.area; }
+$("shift").innerHTML = KH.SHIFTS.map(function(s){ return '<option value="' + s.key + '">' + esc(s.name) + ' (' + esc(s.hours) + ')</option>'; }).join("");
+$("shift").value = S.shift; $("porter").value = S.porter || KH.porterName(); $("date").value = S.service_date || KH.today();
+function renderRounds(){
+  var d = def(), sel = $("round");
+  sel.innerHTML = d ? d.rounds.map(function(r){ return '<option value="' + esc(r) + '">' + esc(r) + (r === d.thorough ? ' (thorough round)' : '') + '</option>'; }).join("") : '<option value="">Pick the area first</option>';
+  if(d && d.rounds.indexOf(S.round) < 0) S.round = nearestRound(d);
+  sel.value = S.round;
+  $("closedNote").classList.toggle("hidden", !(d && d.closed));
+}
+$("area").addEventListener("change", function(){ var d = KH.areaByKey($("area").value); S.area = d ? d.key : ""; S.area_name = d ? d.name : ""; S.round = nearestRound(d); S.tasks = buildTasks(d, S.round); renderRounds(); renderTasks(); persist(); });
+$("round").addEventListener("change", function(){
+  var d = def(), old = S.tasks, nu = buildTasks(d, $("round").value);
+  nu.forEach(function(t){ old.forEach(function(o){ if(o.q === t.q && o.f === t.f) t.a = o.a; }); });
+  S.round = $("round").value; S.tasks = nu; renderTasks(); persist();
+});
+$("shift").addEventListener("change", function(){ S.shift = $("shift").value; S.shift_name = KH.shiftFor(S.shift).name; persist(); });
+$("porter").addEventListener("input", function(){ S.porter = $("porter").value; persist(); });
+$("date").addEventListener("change", function(){ S.service_date = $("date").value; persist(); });
+$("notes").value = S.notes || ""; $("notes").addEventListener("input", function(){ S.notes = $("notes").value; persist(); });
+
+/* ---------- tasks ---------- */
+var LABEL = { every:"Every visit / Cada visita", daily:"Thorough round, daily tasks / Ronda a fondo", periodic:"Weekly and monthly, tick only if done today / Semanal y mensual" };
+function renderTasks(){
+  var d = def(), host = $("tasks");
+  if(!d){ host.innerHTML = '<div class="sub">Pick the area to see its tasks.</div>'; bar(); return; }
+  if(d.freeText){ host.innerHTML = '<div class="field"><label for="deep">What was deep cleaned, and where? <span class="req">*</span></label><textarea id="deep" placeholder="Exactly what, and exactly where."></textarea></div>'; $("deep").value = S.deep || ""; $("deep").addEventListener("input", function(){ S.deep = $("deep").value; persist(); }); bar(); return; }
+  var h = "";
+  ["every","daily","periodic"].forEach(function(f){
+    var list = S.tasks.map(function(t, i){ return { t:t, i:i }; }).filter(function(x){ return x.t.f === f; });
+    if(!list.length) return;
+    h += '<div class="grp">' + esc(LABEL[f]) + (f !== "periodic" ? '<button type="button" class="all" data-all="' + f + '">All done</button>' : '') + '</div>';
+    list.forEach(function(x){
+      var parts = String(x.t.q).match(/^(.*?)\s*\((.*)\)\s*$/);
+      var en = parts ? parts[1] : x.t.q, es = parts ? parts[2] : "";
+      if(f === "periodic") h += '<label class="check' + (x.t.a === "Yes" ? ' done' : '') + '"><input type="checkbox" data-p="' + x.i + '"' + (x.t.a === "Yes" ? ' checked' : '') + '><span>' + esc(en) + (es ? '<small style="display:block;color:var(--grey);font-size:12px">' + esc(es) + '</small>' : '') + '</span></label>';
+      else h += '<div class="yn"><div class="q">' + esc(en) + (es ? '<small>' + esc(es) + '</small>' : '') + '</div><div class="b"><button type="button" class="yes' + (x.t.a === "Yes" ? ' on' : '') + '" data-yn="' + x.i + ':Yes">Yes</button><button type="button" class="no' + (x.t.a === "No" ? ' on' : '') + '" data-yn="' + x.i + ':No">No</button></div></div>';
+    });
+  });
+  host.innerHTML = h;
+  host.querySelectorAll("[data-yn]").forEach(function(b){ b.addEventListener("click", function(){ var p = b.getAttribute("data-yn").split(":"); var t = S.tasks[Number(p[0])]; t.a = t.a === p[1] ? "" : p[1]; renderTasks(); persist(); }); });
+  host.querySelectorAll("[data-all]").forEach(function(b){ b.addEventListener("click", function(){ var f = b.getAttribute("data-all"); S.tasks.forEach(function(t){ if(t.f === f) t.a = "Yes"; }); renderTasks(); persist(); }); });
+  host.querySelectorAll("[data-p]").forEach(function(c){ c.addEventListener("change", function(){ S.tasks[Number(c.getAttribute("data-p"))].a = c.checked ? "Yes" : ""; c.closest(".check").classList.toggle("done", c.checked); persist(); }); });
+  bar();
+}
+function counts(){ var need = S.tasks.filter(function(t){ return t.f !== "periodic"; }); var done = need.filter(function(t){ return t.a; }).length; return { done:done, total:need.length, no:S.tasks.filter(function(t){ return t.a === "No"; }).length }; }
+function bar(){ var c = counts(); $("barst").textContent = (def() && def().freeText) ? "Describe the deep clean, then submit" : c.done + " of " + c.total + " answered" + (c.no ? " · " + c.no + " No" : "") + " · " + S.photos.length + " photo" + (S.photos.length === 1 ? "" : "s"); }
+
+/* ---------- photos ---------- */
+var pick = KH.photoPick("pfile", function(p){
+  THUMBS[p.pid] = p.thumb; var rec = { pid:p.pid, w:p.w, h:p.h, at:p.at };
+  S.photos.push(rec);
+  KH.photoStore(S.id + ":" + p.pid, p.data).then(function(ok){ if(!ok) rec._mem = p.data; renderPhotos(); persist(); });
+}, function(m){ $("ferr").textContent = m; });
+function renderPhotos(){
+  var g = $("pgrid");
+  g.innerHTML = S.photos.map(function(p, i){ return '<div class="ph"><img src="' + (THUMBS[p.pid] || "") + '" alt=""><button type="button" class="rm" data-i="' + i + '" aria-label="Remove">&times;</button></div>'; }).join("") +
+    (S.photos.length < 3 ? '<div class="add" id="padd"><span class="big">+</span>Take or upload</div>' : "");
+  var add = $("padd"); if(add) add.addEventListener("click", pick);
+  g.querySelectorAll(".rm").forEach(function(b){ b.addEventListener("click", function(){ var ph = S.photos.splice(Number(b.getAttribute("data-i")), 1)[0]; if(ph){ delete THUMBS[ph.pid]; KH.photoDrop(S.id + ":" + ph.pid); } renderPhotos(); persist(); }); });
+  bar();
+}
+function restoreThumbs(){ return S.photos.reduce(function(chain, p){ return chain.then(function(){ return KH.photoLoad(S.id + ":" + p.pid).then(function(d){ if(d) return KH.thumb(d, 240).then(function(t){ THUMBS[p.pid] = t; }); }); }); }, Promise.resolve()); }
+
+/* ---------- submit ---------- */
+function validateForm(){
+  var d = def();
+  if(!d) return "Pick the area.";
+  if(!S.round) return "Pick the scheduled round.";
+  if(!String(S.porter || "").trim()) return "Enter your name.";
+  if(d.freeText) return String(S.deep || "").trim() ? "" : "Describe what was deep cleaned and where.";
+  var open = S.tasks.filter(function(t){ return t.f !== "periodic" && !t.a; });
+  if(open.length) return open.length + " task" + (open.length === 1 ? " has" : "s have") + " no answer. Tap Yes or No on every task.";
+  return "";
+}
+$("submit").addEventListener("click", function(){
+  var e = validateForm(); $("ferr").textContent = e;
+  if(e){ $("ferr").scrollIntoView({ behavior:"smooth", block:"center" }); return; }
+  var btn = $("submit"); btn.disabled = true; btn.textContent = "Submitting...";
+  KH.porterName(S.porter.trim());
+  var doc = JSON.parse(JSON.stringify(S)); doc.photos.forEach(function(p){ delete p._mem; }); doc.submitted_at = new Date().toISOString();
+  if(def().freeText){ doc.tasks = []; doc.notes = ("Deep cleaning: " + doc.deep + (doc.notes ? "\n" + doc.notes : "")); }
+  KH.api("kh_submit", { doc: doc }).then(function(r){
+    if(!r || !r.ok) throw new Error((r && r.error) || "Could not submit");
+    var id = doc.id, c = counts();
+    KH.clearDraft(DRAFT);
+    $("form").classList.add("hidden"); $("bar").classList.add("hidden"); $("doneWrap").classList.remove("hidden"); window.scrollTo(0, 0);
+    $("doneRef").textContent = id;
+    $("doneText").textContent = S.area_name + ", " + S.round + " round, is logged" + (c.no ? " with " + c.no + " task" + (c.no === 1 ? "" : "s") + " marked No" : "") + ". It goes to Ken's Foods in the 5 PM summary.";
+    if(!S.photos.length) return;
+    $("donePhotos").innerHTML = '<div class="note info" id="pstat">Uploading ' + S.photos.length + ' photo(s). Keep this page open.</div><div class="progress"><i id="pbar"></i></div>';
+    return S.photos.reduce(function(chain, p, i){
+      return chain.then(function(){
+        return (p._mem ? Promise.resolve(p._mem) : KH.photoLoad(id + ":" + p.pid)).then(function(d){
+          if(!d) return;
+          return KH.api("kh_photo_put", { id:id, pid:p.pid, data:d }).then(function(rr){ if(rr && rr.ok){ p.uploaded = true; KH.photoDrop(id + ":" + p.pid); } }).catch(function(){});
+        }).then(function(){ $("pbar").style.width = Math.round(((i + 1) / S.photos.length) * 100) + "%"; });
+      });
+    }, Promise.resolve()).then(function(){
+      var left = S.photos.filter(function(p){ return !p.uploaded; }).length;
+      $("pstat").className = "note " + (left ? "warn" : "ok");
+      $("pstat").textContent = left ? left + " photo(s) did not upload. Find a better signal and submit the next round; City Wide can ask for them." : "All photos uploaded. You are done.";
+    });
+  }).catch(function(err){
+    btn.disabled = false; btn.textContent = "Submit round";
+    var m = String(err && err.message || err);
+    if(/passcode/i.test(m)) return KH.locked(m);
+    $("ferr").textContent = /fetch|network|json/i.test(m) ? "Could not reach City Wide. Check your signal and tap Submit again. Nothing is lost." : m;
+  });
+});
+
+/* ---------- start over (two taps) ---------- */
+var resetArmed = null;
+$("reset").addEventListener("click", function(){
+  var b = $("reset");
+  if(!resetArmed){ b.textContent = "Tap again to clear"; b.classList.remove("ghost"); b.classList.add("dark"); resetArmed = setTimeout(function(){ resetArmed = null; b.textContent = "Start over"; b.classList.add("ghost"); b.classList.remove("dark"); }, 4000); return; }
+  clearTimeout(resetArmed); resetArmed = null;
+  var oldId = S.id; KH.clearDraft(DRAFT); KH.photoDrop(oldId + ":");
+  S = blank(); THUMBS = {};
+  if(!LOCKED) $("area").value = "";
+  $("shift").value = S.shift; $("porter").value = S.porter; $("date").value = S.service_date; $("notes").value = ""; $("ferr").textContent = "";
+  renderRounds(); renderTasks(); renderPhotos();
+  b.textContent = "Start over"; b.classList.add("ghost"); b.classList.remove("dark"); window.scrollTo({ top:0, behavior:"smooth" });
+});
+
+renderRounds(); renderTasks(); renderPhotos();
+restoreThumbs().then(renderPhotos);
+})();
+</script>
+</body>
+</html>

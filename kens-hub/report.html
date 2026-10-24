@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Tell City Wide | Kens Hub</title>
+<!-- build 2026-10-24: Ken's Foods staff message / request form, the hub version of the Ken's Communication & Feedback
+     Report Jotform, widened to the Ovation report shape (type, area, urgency, photo). Kind kh_submit (khr_), then
+     kh_photo_put. Emails Config!report_notify at once. Rides the client digest (name shown to City Wide only). -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="stylesheet" href="kh.css">
+<style>.brands img.ovl{height:36px}</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="top">
+<div class="bar">
+<a class="back" href="client.html">&larr; Ken's Foods staff</a>
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>Tell City Wide</b>Kens Hub</div>
+</div>
+</header>
+
+<main class="wrap" id="form">
+<h1>Tell City Wide something</h1>
+<div class="lead">City Wide sees this within minutes. The crew hears what matters to them; your contact details stay with City Wide.</div>
+
+<div class="card">
+<h2>What is it?</h2>
+<div class="chips big" id="types"></div>
+</div>
+
+<div class="card olive">
+<h2>Where and what</h2>
+<div class="field"><label for="area">Area of the building <span class="req">*</span></label><select id="area"></select></div>
+<div class="field"><label for="msg">What would you like City Wide and the crew to know? <span class="req">*</span></label><textarea id="msg" placeholder="Be specific. Example: the women's locker room floor was still wet at 9:30 this morning."></textarea></div>
+<div class="field"><div class="lbl">How urgent?</div><div class="chips" id="urg"></div></div>
+<div class="photos" style="margin-top:4px"><div class="lbl" style="font-size:13px;font-weight:700;margin-bottom:6px">Photos (optional)</div><div class="pgrid" id="pgrid"></div></div>
+</div>
+
+<div class="card plain">
+<h2>Who is sending this?</h2>
+<div class="row2">
+<div class="field"><label for="who">Your name <span class="req">*</span></label><input type="text" id="who" autocomplete="name"></div>
+<div class="field"><label for="role">Role or department</label><input type="text" id="role" placeholder="Plant manager, HR, QA"></div>
+</div>
+<div class="row2">
+<div class="field"><label for="phone">Phone</label><input type="tel" id="phone" autocomplete="tel"></div>
+<div class="field"><label for="email">Email</label><input type="email" id="email" autocomplete="email"></div>
+</div>
+<div class="hint">Only City Wide sees your contact details. The crew sees the message and the area.</div>
+<div class="err" id="ferr"></div>
+</div>
+<input type="file" id="pfile" accept="image/*" class="hidden">
+</main>
+
+<div class="sticky" id="bar"><div class="in"><div class="st">Goes to City Wide right away.</div><button class="btn" id="submit">Send to City Wide</button></div></div>
+
+<main class="wrap hidden" id="doneWrap">
+<div class="card plain done">
+<div class="big">&#10003;</div>
+<h2>Sent to City Wide</h2>
+<p id="doneText"></p>
+<div id="donePhotos"></div>
+<div class="kv" style="justify-content:center;margin:14px 0"><span>Reference <span class="ref" id="doneRef"></span></span></div>
+<div class="btnrow"><a class="btn dark" href="report.html">Send another</a><a class="btn ghost" href="client.html">Back</a></div>
+</div>
+</main>
+
+<script src="kh-shared.js"></script>
+<script>
+(function(){
+var $ = KH.$, esc = KH.esc;
+if(!KH.require()) return;
+var TYPES = [["Compliment", "Something the crew did well"], ["Needs attention", "Something was missed or not done right"], ["Spill or hazard", "Needs a porter soon"], ["Request extra work", "Beyond the regular rounds"], ["Question or other", ""]];
+var URG = ["Whenever", "Today", "Urgent"];
+var S = { type:"", urgency:"Whenever", photos:[] }, THUMBS = {};
+$("area").innerHTML = KH.areaOptions().replace("Pick the area", "Pick the area") + '<option value="other">Somewhere else (say where below)</option>';
+function renderTypes(){ $("types").innerHTML = TYPES.map(function(t){ return '<button type="button" class="chip' + (S.type === t[0] ? ' on red' : '') + '" data-t="' + esc(t[0]) + '">' + esc(t[0]) + (t[1] ? '<small>' + esc(t[1]) + '</small>' : '') + '</button>'; }).join(""); $("types").querySelectorAll(".chip").forEach(function(b){ b.addEventListener("click", function(){ S.type = b.getAttribute("data-t"); renderTypes(); }); }); }
+function renderUrg(){ $("urg").innerHTML = URG.map(function(u){ return '<button type="button" class="chip' + (S.urgency === u ? ' on' : '') + '" data-u="' + u + '">' + u + '</button>'; }).join(""); $("urg").querySelectorAll(".chip").forEach(function(b){ b.addEventListener("click", function(){ S.urgency = b.getAttribute("data-u"); renderUrg(); }); }); }
+renderTypes(); renderUrg();
+var pick = KH.photoPick("pfile", function(p){ THUMBS[p.pid] = p.thumb; S.photos.push({ pid:p.pid, w:p.w, h:p.h, at:p.at, _mem:p.data }); renderPhotos(); }, function(m){ $("ferr").textContent = m; });
+function renderPhotos(){ var g = $("pgrid"); g.innerHTML = S.photos.map(function(p, i){ return '<div class="ph"><img src="' + THUMBS[p.pid] + '" alt=""><button type="button" class="rm" data-i="' + i + '">&times;</button></div>'; }).join("") + (S.photos.length < 4 ? '<div class="add" id="padd"><span class="big">+</span>Take or upload</div>' : ""); var a = $("padd"); if(a) a.addEventListener("click", pick); g.querySelectorAll(".rm").forEach(function(b){ b.addEventListener("click", function(){ S.photos.splice(Number(b.getAttribute("data-i")), 1); renderPhotos(); }); }); }
+renderPhotos();
+try { $("who").value = localStorage.getItem("cwKhClientName") || ""; $("role").value = localStorage.getItem("cwKhClientRole") || ""; $("email").value = localStorage.getItem("cwKhClientEmail") || ""; $("phone").value = localStorage.getItem("cwKhClientPhone") || ""; } catch(e){}
+$("submit").addEventListener("click", function(){
+  var areaSel = $("area").value, def = KH.areaByKey(areaSel);
+  var err = !S.type ? "Pick what this is." : !areaSel ? "Pick the area." : !$("msg").value.trim() ? "Write the message." : !$("who").value.trim() ? "Enter your name." : "";
+  $("ferr").textContent = err; if(err) return;
+  var btn = $("submit"); btn.disabled = true; btn.textContent = "Sending...";
+  try { localStorage.setItem("cwKhClientName", $("who").value.trim()); localStorage.setItem("cwKhClientRole", $("role").value.trim()); localStorage.setItem("cwKhClientEmail", $("email").value.trim()); localStorage.setItem("cwKhClientPhone", $("phone").value.trim()); } catch(e){}
+  var doc = { id: KH.uid("khr_"), created_at: new Date().toISOString(), submitter: $("who").value.trim(), role: $("role").value.trim() || "Ken's Foods staff", phone: $("phone").value.trim(), email: $("email").value.trim(),
+    mode: /request/i.test(S.type) ? "Work request" : "Report", category: S.type, area: areaSel, area_name: def ? def.name : "Somewhere else", urgency: S.urgency, summary: $("msg").value.trim().slice(0, 400), notes: $("msg").value.trim(),
+    photos: S.photos.map(function(p){ return { pid:p.pid, w:p.w, h:p.h, at:p.at }; }), status:"New" };
+  KH.api("kh_submit", { doc: doc }).then(function(r){
+    if(!r || !r.ok) throw new Error((r && r.error) || "Could not send");
+    $("form").classList.add("hidden"); $("bar").classList.add("hidden"); $("doneWrap").classList.remove("hidden"); window.scrollTo(0, 0);
+    $("doneRef").textContent = doc.id; $("doneText").textContent = "City Wide has it. " + (S.urgency === "Urgent" ? "For anything that cannot wait, also call 702-483-1874." : "You will see it in the 5 PM summary too.");
+    if(!S.photos.length) return;
+    $("donePhotos").innerHTML = '<div class="note info" id="pstat">Uploading ' + S.photos.length + ' photo(s). Keep this page open.</div>';
+    return KH.uploadPhotos(doc.id, S.photos.map(function(p){ return { pid:p.pid, data:p._mem }; })).then(function(failed){ $("pstat").className = "note " + (failed ? "warn" : "ok"); $("pstat").textContent = failed ? failed + " photo(s) did not upload." : "Photos uploaded."; });
+  }).catch(function(err){ btn.disabled = false; btn.textContent = "Send to City Wide"; var m = String(err && err.message || err); if(/passcode/i.test(m)) return KH.locked(m); $("ferr").textContent = /fetch|network|json/i.test(m) ? "Could not reach City Wide. Check your connection and try again." : m; });
+});
+})();
+</script>
+</body>
+</html>

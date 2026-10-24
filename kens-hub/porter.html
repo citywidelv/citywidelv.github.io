@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Porter Desk | Kens Hub</title>
+<!-- build 2026-10-24: Porter desk for the Ken's Foods plant. Doors: area round checklist (checklist.html, also
+     reached by the QR code in each area with ?area=key), end-of-shift report (shift.html), emergency or maintenance
+     issue (porter-report.html), messages from the plant (feed.html), past reports (history.html). The porter's name
+     is remembered on the phone. No fetch on load. -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="stylesheet" href="kh.css">
+<style>
+.tiles{grid-template-columns:1fr}
+.tile{flex-direction:row;align-items:center;gap:14px;min-height:0;padding:16px 18px}
+.tile .ic{flex:none;width:44px;height:44px;border-radius:12px;background:var(--ov-cream);display:flex;align-items:center;justify-content:center;font-size:22px}
+.tile .t{flex:1;min-width:0}
+.tile h2{font-size:1.05rem;margin-bottom:2px}
+.tile p{margin:0}
+.tile .go{margin:0;flex:none;font-size:20px}
+.tile.em{border-top-color:var(--red);background:var(--warnbg)}
+.tile.em .ic{background:#fff;color:var(--red)}
+.tile.em h2{color:var(--red)}
+.brands img.ovl{height:36px}
+.shiftline{font-size:13px;color:var(--grey);margin-top:4px}
+.shiftline b{color:var(--black)}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="top">
+<div class="bar">
+<a class="back" href="index.html">&larr; Kens Hub</a>
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>Porter Desk</b>Kens Hub</div>
+</div>
+</header>
+
+<main class="wrap">
+<h1>Porter Desk</h1>
+<div class="lead">Everything for your shift at Ken's Foods in one place. / Todo para tu turno en un solo lugar.</div>
+
+<div class="card plain">
+<div class="field" style="margin:0"><label for="porter">Your name / Tu nombre</label>
+<input type="text" id="porter" autocomplete="name" placeholder="First and last name">
+<div class="shiftline" id="shiftline"></div></div>
+</div>
+
+<div class="tiles">
+<a class="tile" href="checklist.html">
+<div class="ic">&#9745;</div>
+<div class="t"><h2>Area checklist / Lista por área</h2><p>Log the round you just finished. Scan the QR code in the area, or pick the area here.</p></div>
+<div class="go">&rarr;</div>
+</a>
+<a class="tile olive" href="shift.html">
+<div class="ic">&#128337;</div>
+<div class="t"><h2>End of shift / Fin de turno</h2><p>Each scheduled stop: done, on time, and why if not. Submit before you leave.</p></div>
+<div class="go">&rarr;</div>
+</a>
+<a class="tile em" href="porter-report.html">
+<div class="ic">&#9888;</div>
+<div class="t"><h2>Emergency or maintenance issue</h2><p>Something dangerous, or something broken. Take a photo and send it. City Wide gets it right away.</p></div>
+<div class="go">&rarr;</div>
+</a>
+<a class="tile olive" href="feed.html">
+<div class="ic">&#128172;</div>
+<div class="t"><h2>Messages from the plant</h2><p>Requests, concerns and compliments Ken's Foods sent in. City Wide handles the follow-up; this is so you know.</p></div>
+<div class="go">&rarr;</div>
+</a>
+<a class="tile black" href="history.html">
+<div class="ic">&#128196;</div>
+<div class="t"><h2>Past reports</h2><p>Every round and end-of-shift report logged at the plant.</p></div>
+<div class="go">&rarr;</div>
+</a>
+</div>
+
+<div class="note info"><b>Need something from City Wide?</b> Call <a href="tel:7024831874">702-483-1874</a>.</div>
+</main>
+
+<footer class="foot"><span class="line">City Wide Facility Solutions, Las Vegas &middot; <a href="tel:7024831874">702-483-1874</a></span></footer>
+
+<script src="kh-shared.js"></script>
+<script>
+(function(){
+if(!KH.require()) return;
+var p = KH.$("porter"); p.value = KH.porterName();
+p.addEventListener("change", function(){ KH.porterName(p.value.trim()); });
+var s = KH.shiftFor(KH.shiftNow());
+KH.$("shiftline").innerHTML = "Right now: <b>" + KH.esc(s.name) + "</b>, " + KH.esc(s.hours) + ".";
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Messages from the plant | Kens Hub</title>
+<!-- build 2026-10-22: porter view of Ken's Foods reports and requests. The backend (kh_feed / kh_feed_get /
+     kh_feed_photo) strips who sent it, their role, phone, email and City Wide's internal notes before anything
+     reaches this page. Porters read; they do not reply here. Last list is cached on the phone and painted first. -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="stylesheet" href="kh.css">
+<style>
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.filters select{flex:1;min-width:180px}
+.filters .btn{width:auto}
+.msg{display:block;width:100%;text-align:left;background:var(--white);border:1px solid var(--ov-border);border-left:5px solid var(--ov-olive);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;font-family:inherit;color:var(--black);box-shadow:0 2px 8px rgba(63,58,31,.05)}
+.msg.req{border-left-color:var(--red)}
+.msg.urgent{border-left-color:var(--red);background:#fffaf9}
+.msg .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--grey);margin-bottom:4px}
+.msg .top b{color:var(--black)}
+.msg .cat{font-size:15px;font-weight:700}
+.msg .sum{font-size:13px;color:var(--grey);margin-top:3px;line-height:1.4}
+.pill.compliment{background:var(--okbg);color:var(--ok)}
+.pill.request{background:#fdecec;color:var(--red)}
+.pill.report{background:#efece4;color:var(--ov-olive)}
+.pill.urgent{background:var(--red);color:#fff}
+.detail dl{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:14px}
+.detail dt{color:var(--grey);font-size:13px}
+.detail dd{font-weight:700}
+@media(max-width:480px){.detail dl{grid-template-columns:1fr}.detail dt{margin-top:6px}}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px}
+.ph{aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--light);border:1px solid var(--border);position:relative;cursor:zoom-in}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .ld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--grey)}
+.light{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:60;cursor:zoom-out}
+.light img{max-width:96vw;max-height:94vh;border-radius:6px}
+.empty{padding:28px 16px;text-align:center;color:var(--grey);font-size:14px;background:var(--white);border:1px dashed var(--ov-border);border-radius:12px}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="top">
+<div class="bar">
+<a class="back" href="porter.html" id="back">&larr; Porter Desk</a>
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>Messages from the plant</b>Kens Hub</div>
+</div>
+</header>
+
+<main class="wrap" id="listWrap">
+<h1>Messages from the plant</h1>
+<div class="lead">What the Ken's Foods team sent in for your community. City Wide follows up with them directly; this is so you know what was asked.</div>
+<div class="filters">
+<select id="prop" class="hidden"></select>
+<button type="button" class="btn ghost sm" id="refresh">Refresh</button>
+</div>
+<div id="list"><div class="empty">Loading...</div></div>
+</main>
+
+<main class="wrap hidden" id="detailWrap">
+<a href="#" class="backlist" id="backList" style="display:inline-flex">&larr; All messages</a>
+<div id="detail"></div>
+</main>
+
+<script src="kh-shared.js"></script>
+<script>
+(function(){
+var $ = KH.$, esc = KH.esc;
+if(!KH.require()) return;
+var S = { rows:[], cur:null, photos:{} };
+var sel = $("prop");
+sel.innerHTML = KH.propertyOptions(true);
+sel.value = KH.porterProp(); if(sel.value !== KH.porterProp()) sel.value = "";
+sel.addEventListener("change", function(){ KH.porterProp(sel.value); load(); });
+$("refresh").addEventListener("click", load);
+
+function kindOf(r){ if(/request/i.test(r.mode)) return "request"; if(/compliment/i.test(r.category)) return "compliment"; return "report"; }
+function urgent(r){ return /today|soon as possible/i.test(String(r.urgency || "")) || /spill|hazard/i.test(String(r.category || "")); }
+function cacheKey(){ return "cwKhFeed_" + (sel.value || "all"); }
+function load(){
+  try { var c = JSON.parse(localStorage.getItem(cacheKey()) || "null"); if(c){ S.rows = c; paint(); } else $("list").innerHTML = '<div class="empty">Loading...</div>'; } catch(e){}
+  KH.api("kh_feed", { property: sel.value, days: 90 }).then(function(r){
+    if(!r || !r.ok) throw new Error((r && r.error) || "Could not load");
+    S.rows = r.rows || []; try { localStorage.setItem(cacheKey(), JSON.stringify(S.rows.slice(0, 80))); } catch(e){}
+    paint();
+  }).catch(function(e){ var m = String(e.message || e); if(/passcode/i.test(m)) return KH.locked(m); if(!S.rows.length) $("list").innerHTML = '<div class="empty">' + esc(/fetch|json/i.test(m) ? "Could not reach City Wide. Check your signal and tap Refresh." : m) + '</div>'; });
+}
+function paint(){
+  if(!S.rows.length){ $("list").innerHTML = '<div class="empty">Nothing from the plant yet' + (sel.value ? " for " + esc(sel.value) : "") + '. New requests and notes show up here as soon as they are sent.</div>'; return; }
+  $("list").innerHTML = S.rows.map(function(r){
+    var k = kindOf(r), u = urgent(r);
+    return '<button type="button" class="msg ' + (k === "request" ? "req" : "") + (u ? " urgent" : "") + '" data-id="' + esc(r.id) + '">' +
+      '<div class="top"><span class="pill ' + k + '">' + (k === "request" ? "Request" : k === "compliment" ? "Compliment" : "Report") + '</span>' + (u ? '<span class="pill urgent">Urgent</span>' : '') + '<span>' + esc(KH.fmtDate(r.created_at)) + '</span>' + (!sel.value ? '<b>' + esc(r.property) + '</b>' : '') + (r.status === "Sent" || r.status === "Reviewed" ? '<span class="pill sent">City Wide handled</span>' : '') + '</div>' +
+      '<div class="cat">' + esc(r.category) + (r.subcategory ? ' <span style="font-weight:400;color:var(--grey)">· ' + esc(r.subcategory) + '</span>' : '') + '</div>' +
+      (r.summary ? '<div class="sum">' + esc(String(r.summary).replace(/^[^:]+:\s*/, "").slice(0, 160)) + '</div>' : '') +
+      (r.photos ? '<div class="sum">' + r.photos + ' photo' + (r.photos == 1 ? "" : "s") + '</div>' : '') + '</button>';
+  }).join("");
+  $("list").querySelectorAll(".msg").forEach(function(b){ b.addEventListener("click", function(){ open(b.getAttribute("data-id")); }); });
+}
+function open(id){
+  S.cur = id; S.photos = {};
+  $("listWrap").classList.add("hidden"); $("detailWrap").classList.remove("hidden"); window.scrollTo(0, 0);
+  $("detail").innerHTML = '<div class="card plain"><div class="empty" style="border:0">Loading...</div></div>';
+  KH.api("kh_feed_get", { id:id }).then(function(r){
+    if(!r || !r.ok) throw new Error((r && r.error) || "Could not load");
+    var d = r.doc, files = r.photo_files || {}, k = kindOf(d);
+    var h = '<div class="card ' + (k === "request" ? "" : "olive") + ' detail"><div class="kv" style="margin-bottom:6px"><span class="pill ' + k + '">' + (k === "request" ? "Request" : k === "compliment" ? "Compliment" : "Report") + '</span>' + (urgent(d) ? '<span class="pill urgent">Urgent</span>' : '') + '<span>' + esc(KH.fmtDate(d.created_at)) + '</span></div>';
+    h += '<h2 style="font-size:1.25rem">' + esc(d.category) + '</h2><div class="sub">' + esc(d.area_name || d.area || "") + '</div>';
+    h += '<dl>';
+    [["Where", d.location], ["How soon", d.urgency]].forEach(function(f){ if(f[1]) h += '<dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd>'; });
+    (d.answers || []).forEach(function(a){ var v = Array.isArray(a.a) ? a.a.join(", ") : a.a; if(v) h += '<dt>' + esc(a.q) + '</dt><dd>' + esc(v) + '</dd>'; });
+    if(d.notes) h += '<dt>Anything else</dt><dd>' + esc(d.notes) + '</dd>';
+    h += '</dl>';
+    var pids = (d.photos || []).map(function(p){ return p.pid; });
+    if(pids.length) h += '<div class="pgrid">' + pids.map(function(pid){ return '<div class="ph" data-pid="' + esc(pid) + '"><div class="ld">loading</div></div>'; }).join("") + '</div>';
+    h += '</div>';
+    if(d.response) h += '<div class="card"><h2 style="font-size:1rem">What City Wide said</h2><div style="font-size:14px;white-space:pre-wrap">' + esc(d.response) + '</div></div>';
+    h += '<div class="note info">Sent by the Ken\'s Foods team. City Wide replies to them directly, so there is nothing for you to answer here. If this is about your area, your Facility Solutions Manager will reach you.</div>';
+    $("detail").innerHTML = h;
+    pids.reduce(function(chain, pid){ return chain.then(function(){ var fid = files[pid]; var el = document.querySelector('.ph[data-pid="' + pid + '"]'); if(!fid){ if(el) el.querySelector(".ld").textContent = "not uploaded"; return; } return KH.api("kh_feed_photo", { fileId:fid }).then(function(pr){ if(!el) return; if(pr && pr.ok){ S.photos[pid] = pr.data; el.innerHTML = '<img src="' + pr.data + '" alt="">'; el.addEventListener("click", function(){ var l = document.createElement("div"); l.className = "light"; l.innerHTML = '<img src="' + pr.data + '" alt="">'; l.addEventListener("click", function(){ l.remove(); }); document.body.appendChild(l); }); } else el.querySelector(".ld").textContent = "unavailable"; }).catch(function(){ if(el) el.querySelector(".ld").textContent = "unavailable"; }); }); }, Promise.resolve());
+  }).catch(function(e){ var m = String(e.message || e); if(/passcode/i.test(m)) return KH.locked(m); $("detail").innerHTML = '<div class="card plain"><div class="empty" style="border:0">' + esc(m) + '</div></div>'; });
+}
+$("backList").addEventListener("click", function(e){ e.preventDefault(); $("detailWrap").classList.add("hidden"); $("listWrap").classList.remove("hidden"); window.scrollTo(0, 0); });
+var P = KH.params(); load(); if(P.id) open(P.id);
+})();
+</script>
+</body>
+</html>

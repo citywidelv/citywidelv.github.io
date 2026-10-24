@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>End of Shift | Kens Hub</title>
+<!-- build 2026-10-24: End-of-shift report, the hub version of the Ken's Foods End of Shift Checklist Jotform. The
+     shift's scheduled stops (KH.SHIFTS) each get Done? and On time? plus a reason when either is No. One photo field,
+     one notes field. Saves to the phone as a draft, then kh_submit. No email on submit; it rides the digest. -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="stylesheet" href="kh.css">
+<style>
+.brands img.ovl{height:36px}
+.stop{border:1px solid var(--border);border-radius:12px;background:#fff;padding:12px 14px;margin-bottom:10px}
+.stop .t{font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:.08em}
+.stop .w{font-size:14px;font-weight:700;line-height:1.3;margin:2px 0 8px}
+.stop .q{display:flex;align-items:center;gap:10px;margin:6px 0}
+.stop .q span{flex:1;font-size:13px;color:var(--grey)}
+.stop .q .b{display:flex;gap:6px;flex:none}
+.stop .q button{min-width:52px;min-height:40px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:inherit;font-weight:700;font-size:13px;color:var(--grey);cursor:pointer}
+.stop .q button.yes.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.stop .q button.no.on{background:var(--red);border-color:var(--red);color:#fff}
+.stop.ok{border-color:#bfe3cc}
+.stop.bad{border-color:#f0c4c6;background:var(--warnbg)}
+.stop textarea{min-height:60px;margin-top:6px}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="top">
+<div class="bar">
+<a class="back" href="porter.html">&larr; Porter Desk</a>
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>End of Shift</b>Kens Hub</div>
+</div>
+</header>
+
+<main class="wrap" id="form">
+<h1>End of Shift <span style="font-weight:400;color:var(--grey);font-size:1rem">/ Fin de turno</span></h1>
+<div class="lead">For every scheduled stop: was it done, and was it on time? If not, say why. / Para cada parada programada: se hizo y a tiempo? Si no, explique.</div>
+
+<div class="card">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px"><h2 style="margin:0">Your shift</h2><button type="button" class="btn ghost sm" id="reset">Start over</button></div>
+<div class="row2">
+<div class="field"><label for="shift">Shift <span class="req">*</span></label><select id="shift"></select></div>
+<div class="field"><label for="date">Date <span class="req">*</span></label><input type="date" id="date"></div>
+</div>
+<div class="field"><label for="porter">Your name <span class="req">*</span></label><input type="text" id="porter" autocomplete="name" placeholder="First and last name"></div>
+</div>
+
+<h2 style="margin:18px 0 8px">Scheduled stops <span style="font-weight:400;color:var(--grey);font-size:.9rem">/ Paradas programadas</span></h2>
+<div class="btnrow" style="margin:0 0 10px"><button type="button" class="btn ghost sm" id="allok">Everything done, on time</button></div>
+<div id="stops"></div>
+
+<div class="card plain">
+<h2>Photo and notes <span style="font-weight:400;color:var(--grey);font-size:.9rem">(optional)</span></h2>
+<div class="sub">Damages, oddities, anything to report. / Daños, cosas raras, cualquier cosa que reportar.</div>
+<div class="photos"><div class="pgrid" id="pgrid"></div></div>
+<div class="field" style="margin-top:12px"><label for="notes">Anything additional that needs to be reported?</label><textarea id="notes"></textarea></div>
+<div class="err" id="ferr"></div>
+</div>
+<input type="file" id="pfile" accept="image/*" class="hidden">
+</main>
+
+<div class="sticky" id="bar">
+<div class="in"><div class="st" id="barst"></div><button class="btn" id="submit">Submit shift report</button></div>
+</div>
+
+<main class="wrap hidden" id="doneWrap">
+<div class="card plain done">
+<div class="big">&#10003;</div>
+<h2>Shift report submitted</h2>
+<p id="doneText"></p>
+<div id="donePhotos"></div>
+<div class="kv" style="justify-content:center;margin:14px 0"><span>Reference <span class="ref" id="doneRef"></span></span></div>
+<div class="btnrow"><a class="btn ghost" href="porter.html">Back to the Porter Desk</a></div>
+</div>
+</main>
+
+<script src="kh-shared.js"></script>
+<script>
+(function(){
+var $ = KH.$, esc = KH.esc;
+if(!KH.require()) return;
+var DRAFT = "shift";
+function stopsFor(key){ var s = KH.shiftFor(key); return s.stops.map(function(st){ return { t:st.t, what:st.what, done:"", on_time:"", why:"" }; }); }
+function blank(){ var k = KH.shiftNow(); return { id: KH.uid("khs_"), kind:"shift", shift:k, shift_name: KH.shiftFor(k).name, porter: KH.porterName(), service_date: KH.today(), stops: stopsFor(k), notes:"", photos:[], status:"New" }; }
+var RESTORED = KH.loadDraft(DRAFT), S = RESTORED || blank();
+if(!S.id || !/^khs_/.test(S.id)){ S = blank(); RESTORED = null; }
+var THUMBS = {}, saveT = null;
+function persist(){ clearTimeout(saveT); saveT = setTimeout(function(){ KH.saveDraft(DRAFT, S); }, 200); }
+
+$("shift").innerHTML = KH.SHIFTS.map(function(s){ return '<option value="' + s.key + '">' + esc(s.name) + ' (' + esc(s.hours) + ')</option>'; }).join("");
+$("shift").value = S.shift; $("porter").value = S.porter || KH.porterName(); $("date").value = S.service_date || KH.today();
+$("shift").addEventListener("change", function(){ S.shift = $("shift").value; S.shift_name = KH.shiftFor(S.shift).name; S.stops = stopsFor(S.shift); renderStops(); persist(); });
+$("porter").addEventListener("input", function(){ S.porter = $("porter").value; persist(); });
+$("date").addEventListener("change", function(){ S.service_date = $("date").value; persist(); });
+$("notes").value = S.notes || ""; $("notes").addEventListener("input", function(){ S.notes = $("notes").value; persist(); });
+
+function renderStops(){
+  var host = $("stops");
+  host.innerHTML = S.stops.map(function(s, i){
+    var bad = s.done === "No" || s.on_time === "No", ok = s.done === "Yes" && s.on_time === "Yes";
+    return '<div class="stop' + (bad ? ' bad' : ok ? ' ok' : '') + '"><div class="t">' + esc(s.t) + '</div><div class="w">' + esc(s.what) + '</div>' +
+      '<div class="q"><span>Done? / Se hizo?</span><div class="b"><button type="button" class="yes' + (s.done === "Yes" ? ' on' : '') + '" data-d="' + i + ':Yes">Yes</button><button type="button" class="no' + (s.done === "No" ? ' on' : '') + '" data-d="' + i + ':No">No</button></div></div>' +
+      (s.done === "Yes" ? '<div class="q"><span>On time? / A tiempo?</span><div class="b"><button type="button" class="yes' + (s.on_time === "Yes" ? ' on' : '') + '" data-o="' + i + ':Yes">Yes</button><button type="button" class="no' + (s.on_time === "No" ? ' on' : '') + '" data-o="' + i + ':No">No</button></div></div>' : '') +
+      (bad ? '<textarea data-w="' + i + '" placeholder="Why? / Por qué?">' + esc(s.why) + '</textarea>' : '') + '</div>';
+  }).join("");
+  host.querySelectorAll("[data-d]").forEach(function(b){ b.addEventListener("click", function(){ var p = b.getAttribute("data-d").split(":"); var s = S.stops[Number(p[0])]; s.done = s.done === p[1] ? "" : p[1]; if(s.done !== "Yes") s.on_time = ""; renderStops(); persist(); }); });
+  host.querySelectorAll("[data-o]").forEach(function(b){ b.addEventListener("click", function(){ var p = b.getAttribute("data-o").split(":"); var s = S.stops[Number(p[0])]; s.on_time = s.on_time === p[1] ? "" : p[1]; renderStops(); persist(); }); });
+  host.querySelectorAll("[data-w]").forEach(function(t){ t.addEventListener("input", function(){ S.stops[Number(t.getAttribute("data-w"))].why = t.value; persist(); }); });
+  bar();
+}
+$("allok").addEventListener("click", function(){ S.stops.forEach(function(s){ s.done = "Yes"; s.on_time = "Yes"; }); renderStops(); persist(); });
+function counts(){ var a = S.stops.filter(function(s){ return s.done && (s.done === "No" || s.on_time); }).length; var late = S.stops.filter(function(s){ return s.done === "Yes" && s.on_time === "No"; }).length; var no = S.stops.filter(function(s){ return s.done === "No"; }).length; return { answered:a, total:S.stops.length, late:late, no:no }; }
+function bar(){ var c = counts(); $("barst").textContent = c.answered + " of " + c.total + " stops answered" + (c.no ? " · " + c.no + " not done" : "") + (c.late ? " · " + c.late + " late" : ""); }
+
+var pick = KH.photoPick("pfile", function(p){ THUMBS[p.pid] = p.thumb; var rec = { pid:p.pid, w:p.w, h:p.h, at:p.at }; S.photos.push(rec); KH.photoStore(S.id + ":" + p.pid, p.data).then(function(ok){ if(!ok) rec._mem = p.data; renderPhotos(); persist(); }); }, function(m){ $("ferr").textContent = m; });
+function renderPhotos(){
+  var g = $("pgrid");
+  g.innerHTML = S.photos.map(function(p, i){ return '<div class="ph"><img src="' + (THUMBS[p.pid] || "") + '" alt=""><button type="button" class="rm" data-i="' + i + '" aria-label="Remove">&times;</button></div>'; }).join("") + (S.photos.length < 4 ? '<div class="add" id="padd"><span class="big">+</span>Take or upload</div>' : "");
+  var add = $("padd"); if(add) add.addEventListener("click", pick);
+  g.querySelectorAll(".rm").forEach(function(b){ b.addEventListener("click", function(){ var ph = S.photos.splice(Number(b.getAttribute("data-i")), 1)[0]; if(ph){ delete THUMBS[ph.pid]; KH.photoDrop(S.id + ":" + ph.pid); } renderPhotos(); persist(); }); });
+}
+function restoreThumbs(){ return S.photos.reduce(function(chain, p){ return chain.then(function(){ return KH.photoLoad(S.id + ":" + p.pid).then(function(d){ if(d) return KH.thumb(d, 240).then(function(t){ THUMBS[p.pid] = t; }); }); }); }, Promise.resolve()); }
+
+function validateForm(){
+  if(!String(S.porter || "").trim()) return "Enter your name.";
+  var open = S.stops.filter(function(s){ return !s.done || (s.done === "Yes" && !s.on_time); });
+  if(open.length) return open.length + " stop" + (open.length === 1 ? " is" : "s are") + " not answered yet.";
+  var why = S.stops.filter(function(s){ return (s.done === "No" || s.on_time === "No") && !String(s.why || "").trim(); });
+  if(why.length) return "Say why for: " + why.map(function(s){ return s.t + " " + s.what; }).join("; ");
+  return "";
+}
+$("submit").addEventListener("click", function(){
+  var e = validateForm(); $("ferr").textContent = e;
+  if(e){ $("ferr").scrollIntoView({ behavior:"smooth", block:"center" }); return; }
+  var btn = $("submit"); btn.disabled = true; btn.textContent = "Submitting...";
+  KH.porterName(S.porter.trim());
+  var doc = JSON.parse(JSON.stringify(S)); doc.photos.forEach(function(p){ delete p._mem; }); doc.submitted_at = new Date().toISOString();
+  KH.api("kh_submit", { doc: doc }).then(function(r){
+    if(!r || !r.ok) throw new Error((r && r.error) || "Could not submit");
+    var id = doc.id, c = counts();
+    KH.clearDraft(DRAFT);
+    $("form").classList.add("hidden"); $("bar").classList.add("hidden"); $("doneWrap").classList.remove("hidden"); window.scrollTo(0, 0);
+    $("doneRef").textContent = id;
+    $("doneText").textContent = S.shift_name + " report for " + KH.niceDay(S.service_date) + " is in" + (c.no || c.late ? " with " + (c.no ? c.no + " not done" : "") + (c.no && c.late ? " and " : "") + (c.late ? c.late + " late" : "") : ", everything done on time") + ". It goes to Ken's Foods in the 5 PM summary.";
+    if(!S.photos.length) return;
+    $("donePhotos").innerHTML = '<div class="note info" id="pstat">Uploading ' + S.photos.length + ' photo(s). Keep this page open.</div><div class="progress"><i id="pbar"></i></div>';
+    return S.photos.reduce(function(chain, p, i){ return chain.then(function(){ return (p._mem ? Promise.resolve(p._mem) : KH.photoLoad(id + ":" + p.pid)).then(function(d){ if(!d) return; return KH.api("kh_photo_put", { id:id, pid:p.pid, data:d }).then(function(rr){ if(rr && rr.ok){ p.uploaded = true; KH.photoDrop(id + ":" + p.pid); } }).catch(function(){}); }).then(function(){ $("pbar").style.width = Math.round(((i + 1) / S.photos.length) * 100) + "%"; }); }); }, Promise.resolve())
+      .then(function(){ var left = S.photos.filter(function(p){ return !p.uploaded; }).length; $("pstat").className = "note " + (left ? "warn" : "ok"); $("pstat").textContent = left ? left + " photo(s) did not upload." : "All photos uploaded. You are done."; });
+  }).catch(function(err){
+    btn.disabled = false; btn.textContent = "Submit shift report";
+    var m = String(err && err.message || err);
+    if(/passcode/i.test(m)) return KH.locked(m);
+    $("ferr").textContent = /fetch|network|json/i.test(m) ? "Could not reach City Wide. Check your signal and tap Submit again. Nothing is lost." : m;
+  });
+});
+var resetArmed = null;
+$("reset").addEventListener("click", function(){
+  var b = $("reset");
+  if(!resetArmed){ b.textContent = "Tap again to clear"; b.classList.remove("ghost"); b.classList.add("dark"); resetArmed = setTimeout(function(){ resetArmed = null; b.textContent = "Start over"; b.classList.add("ghost"); b.classList.remove("dark"); }, 4000); return; }
+  clearTimeout(resetArmed); resetArmed = null;
+  var oldId = S.id; KH.clearDraft(DRAFT); KH.photoDrop(oldId + ":");
+  S = blank(); THUMBS = {};
+  $("shift").value = S.shift; $("porter").value = S.porter; $("date").value = S.service_date; $("notes").value = ""; $("ferr").textContent = "";
+  renderStops(); renderPhotos(); b.textContent = "Start over"; b.classList.add("ghost"); b.classList.remove("dark"); window.scrollTo({ top:0, behavior:"smooth" });
+});
+renderStops(); renderPhotos(); restoreThumbs().then(renderPhotos);
+})();
+</script>
+</body>
+</html>

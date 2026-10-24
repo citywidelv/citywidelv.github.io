@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Kens Hub | City Wide Facility Solutions</title>
+<!-- build 2026-10-24: Kens Hub landing, cloned from the Ovation Hub landing. Two doors (Ken's Foods staff, Porters),
+     a Site manager strip (manager.html, its own passcode) and a City Wide team strip (review.html, team passcode).
+     The hub passcode is its own (script property KH_PASSCODE on the CW Kens Hub Backend). -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://citywidelv.github.io/cw-ops-desk/apple-touch-icon.png">
+<link rel="stylesheet" href="kh.css">
+<style>
+.hero{position:relative;color:#fff;border-bottom:5px solid var(--red);padding:34px 0 30px;background:var(--ov-olive);overflow:hidden}
+.hero .wash{position:absolute;inset:0;background:linear-gradient(135deg,#08203A 0%,#163459 55%,#1f446f 100%)}
+.hero .in{position:relative;max-width:860px;margin:0 auto;padding:0 16px}
+.hero .k{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#c9d2de}
+.hero h1{color:#fff;font-size:1.6rem;margin:8px 0 6px;line-height:1.2}
+.hero p{color:#e3e8ef;font-size:14px;max-width:560px}
+.doors{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:-26px auto 0;max-width:860px;padding:0 16px;position:relative;z-index:2}
+.door{display:flex;flex-direction:column;justify-content:center;gap:6px;min-height:120px;background:var(--white);border:1px solid var(--ov-border);border-radius:14px;padding:18px 18px 16px;text-decoration:none;color:var(--black);box-shadow:0 8px 24px rgba(8,32,58,.14);border-top:6px solid var(--ov-olive);transition:transform .12s ease,box-shadow .12s ease}
+.door.cw{border-top-color:var(--red)}
+.door:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(8,32,58,.18)}
+.door .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--grey)}
+.door h2{font-size:1.35rem;margin:0;line-height:1.15}
+.door p{font-size:13px;color:var(--grey);margin:0}
+.door .go{margin-top:6px;font-weight:700;font-size:15px;color:var(--ov-olive)}
+.door.cw .go{color:var(--red)}
+@media(max-width:600px){.doors{grid-template-columns:1fr;margin-top:-18px}.door{min-height:0;padding:16px}.hero{padding:26px 0 30px}.hero h1{font-size:1.35rem}}
+.team{margin:26px auto 0;max-width:860px;border:1px solid var(--ov-border);border-left:5px solid var(--black);border-radius:10px;background:var(--white);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;text-decoration:none;color:var(--black)}
+.team b{font-size:13px}
+.team span{font-size:12px;color:var(--grey)}
+.team .go{margin-left:auto;font-weight:700;color:var(--red)}
+.brands img.ovl{height:40px}
+.lockcard .brands img.ovl{height:46px}
+footer.foot .brands img.ovl{height:30px}
+@media(max-width:600px){.brands img.ovl{height:30px}.lockcard .brands img.ovl{height:36px}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+
+<div class="gate" id="gate">
+<div class="lockcard">
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<h3>Kens Hub</h3>
+<div class="for">City Wide Facility Solutions for Ken's Foods Las Vegas</div>
+<p>Enter the passcode City Wide gave the plant. This device stays signed in.</p>
+<input type="password" id="pc" placeholder="Passcode" autocomplete="current-password" autofocus>
+<button class="btn" id="enter">Enter</button>
+<div class="err" id="err"></div>
+<div class="hint">Need the passcode? Ask your City Wide Facility Solutions Manager or call 702-483-1874.</div>
+</div>
+</div>
+
+<div id="app" class="hidden">
+<header class="top">
+<div class="bar">
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>Kens Hub</b>Porter program, 3 shifts a day</div>
+</div>
+</header>
+
+<section class="hero">
+<div class="wash"></div>
+<div class="in">
+<div class="k">City Wide Facility Solutions &middot; Ken's Foods Las Vegas</div>
+<h1>Who are you today?</h1>
+<p>Ken's Foods staff see every round the porters log and can send City Wide a message. Porters log each area round, the end-of-shift report, and anything that needs attention.</p>
+</div>
+</section>
+
+<main class="wrap" style="padding-top:0">
+<div class="doors">
+<a class="door" href="client.html">
+<div class="k">Plant team</div>
+<h2>Ken's Foods staff</h2>
+<p>Report history by day and shift, plus a quick way to tell City Wide something.</p>
+<div class="go">Open the report history &rarr;</div>
+</a>
+<a class="door cw" href="porter.html">
+<div class="k">City Wide porters</div>
+<h2>Porters</h2>
+<p>Area checklist, end-of-shift report, messages from the plant, emergencies.</p>
+<div class="go">Open the porter desk &rarr;</div>
+</a>
+</div>
+
+<div class="note info" style="margin-top:22px"><b>Something urgent right now?</b> Call the City Wide Las Vegas service line at <a href="tel:7024831874">702-483-1874</a>. You can still log it here so there is a record.</div>
+
+<a class="team" href="manager.html" style="border-left-color:var(--ov-olive)"><b>Site manager</b><span>Manager Desk: the porters' rounds and reports, request supplies. Manager passcode.</span><span class="go" style="color:var(--ov-olive)">Open &rarr;</span></a>
+
+<a class="team" href="review.html"><b>City Wide team</b><span>Everything on one page, notes, digest settings, send the digest now. Team passcode.</span><span class="go">Open &rarr;</span></a>
+</main>
+
+<footer class="foot"><div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div><span class="line">Porter service for Ken's Foods Las Vegas, provided by City Wide Facility Solutions.</span><span class="line">3215 W Charleston Blvd, Suite 130, Las Vegas, NV 89102 &middot; <a href="tel:7024831874">702-483-1874</a></span></footer>
+</div>
+
+<script src="kh-shared.js"></script>
+<script>
+KH.hubGate({ input:"pc", button:"enter", err:"err", gate:"gate", app:"app" });
+</script>
+</body>
+</html>

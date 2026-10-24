@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>City Wide Review | Kens Hub</title>
+<!-- build 2026-10-24: the City Wide side of the Kens Hub. Team passcode (CWAuth.require, Ops Hub gate); the backend
+     checks it against KH_TEAM_PASSCODE on the CW Kens Hub Backend. No approval queue: this page is the digest
+     settings (Config tab), send-now buttons, the links into the history, and notes / status on one item (?id=). -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="stylesheet" href="kh.css">
+<style>
+.brands img.ovl{height:36px}
+.cfg{display:grid;grid-template-columns:1fr;gap:10px}
+.cfg .k{font-size:12px;font-weight:700}
+.cfg .w{font-size:12px;color:var(--grey);margin-top:3px}
+.cfg .r{display:flex;gap:8px;align-items:flex-start}
+.cfg .r input{flex:1}
+.cfg .r .btn{width:auto;min-height:46px}
+.switch{display:flex;align-items:center;gap:12px;background:var(--warnbg);border:1px solid #f0c4c6;border-left:4px solid var(--red);border-radius:10px;padding:12px}
+.switch b{flex:1;font-size:13px}
+.out{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--light);border-radius:8px;padding:10px;white-space:pre-wrap;margin-top:8px}
+.links a.lnk{display:flex;align-items:center;min-height:44px;font-size:14px;font-weight:700;color:var(--black);text-decoration:none;border-bottom:1px solid var(--light)}
+.links a.lnk:last-child{border-bottom:0}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="top">
+<div class="bar">
+<a class="back" href="index.html">&larr; Kens Hub</a>
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>City Wide Review</b>Kens Hub</div>
+</div>
+</header>
+
+<main class="wrap">
+<h1>City Wide review</h1>
+<div class="lead">Nothing here needs approval. Rounds and shift reports aggregate and go out in the 5 PM digest. This page is where City Wide reads, notes, and sets who gets what.</div>
+
+<div class="card plain links">
+<a class="lnk" href="history.html">Report history, City Wide view (hub + Jotform) &rarr;</a>
+<a class="lnk" href="history.html?who=client">Preview what Ken's Foods sees &rarr;</a>
+<a class="lnk" href="https://www.jotform.com/myforms/" target="_blank" rel="noopener">Jotform (the three plant forms still run there) &rarr;</a>
+<a class="lnk" id="sheetLink" href="#" target="_blank" rel="noopener">Open the CW Kens Hub book &rarr;</a>
+</div>
+
+<div class="card hidden" id="itemCard">
+<h2>Item <span class="ref" id="itemId"></span></h2>
+<div id="itemBody" class="sub"></div>
+<div class="field"><label for="status">Status</label><select id="status"><option>New</option><option>Reviewed</option><option>Scheduled</option><option>Done</option></select></div>
+<div class="field"><label for="cwn">City Wide notes (never shown to Ken's Foods or the vendor)</label><textarea id="cwn"></textarea></div>
+<div class="field"><label for="by">Your name</label><input type="text" id="by" autocomplete="name"></div>
+<div class="btnrow"><button type="button" class="btn" id="save">Save</button></div>
+<div class="err" id="ierr"></div>
+</div>
+
+<div class="card olive">
+<h2>Digest settings</h2>
+<div class="sub">Edit a value and tap Save on that line. Changes apply to the next digest, no deploy.</div>
+<div class="cfg" id="cfg">Loading...</div>
+</div>
+
+<div class="card">
+<h2>Send now</h2>
+<div class="sub">The daily digest covers everything since the last daily send. With digest_live FALSE, both copies go to cw_cc only, so this is the safe way to test.</div>
+<div class="btnrow"><button type="button" class="btn dark" id="daily">Send the daily digest now</button><button type="button" class="btn ghost" id="weekly">Send the weekly digest now</button></div>
+<div class="out hidden" id="out"></div>
+</div>
+</main>
+
+<footer class="foot"><span class="line">City Wide Facility Solutions, Las Vegas</span></footer>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script src="kh-shared.js"></script>
+<script>
+(function(){
+var $ = KH.$, esc = KH.esc, P = KH.params();
+var PASS = CWAuth.require({ hub:"ops" }); if(!PASS) return;
+var api = function(kind, body){ body = body || {}; body.kind = kind; body.passcode = PASS; return KH.post(body).then(function(r){ if(r && r.ok === false && /passcode/i.test(String(r.error || ""))){ CWAuth.locked("ops", r.error); throw new Error(r.error); } return r; }); };
+try { $("by").value = localStorage.getItem("cwOpsName") || ""; } catch(e){}
+var HELP = { client_to:"Ken's Foods, daily 5 PM", vendor_to:"Porter vendor, daily 5 PM (BLPL Cleaning). Never a Ken's address here.", cw_cc:"City Wide, copied on both daily digests", weekly_to:"City Wide, Monday 7 AM weekly", report_notify:"Immediate email when a message, emergency or supply request lands", emergency_notify:"Extra addresses on an EMERGENCY", sender_name:"Display name on every email", reply_to:"Reply-to on every email", site_address:"Plant address shown on digests", last_daily_at:"Set by the digest; clear it to resend from 24 hours ago", digest_live:"TRUE sends to the client and vendor lists. FALSE = test mode, cw_cc only" };
+function renderCfg(cfg){
+  var keys = Object.keys(HELP).filter(function(k){ return k in cfg; });
+  $("cfg").innerHTML = keys.map(function(k){
+    if(k === "digest_live") return '<div class="switch"><b>digest_live is <span id="liveV">' + esc(cfg[k]) + '</span>.</b> ' + esc(HELP[k]) + ' <button type="button" class="btn sm ' + (/^true$/i.test(cfg[k]) ? 'ghost' : 'dark') + '" data-live="' + (/^true$/i.test(cfg[k]) ? 'FALSE' : 'TRUE') + '">' + (/^true$/i.test(cfg[k]) ? 'Turn OFF (test mode)' : 'Turn ON, email the client and vendor') + '</button></div>';
+    return '<div><div class="k">' + esc(k) + '</div><div class="r"><input type="text" data-k="' + esc(k) + '" value="' + esc(cfg[k]) + '"><button type="button" class="btn sm" data-save="' + esc(k) + '">Save</button></div><div class="w">' + esc(HELP[k]) + '</div></div>';
+  }).join("");
+  $("cfg").querySelectorAll("[data-save]").forEach(function(b){ b.addEventListener("click", function(){ var k = b.getAttribute("data-save"); b.disabled = true; api("kh_config_set", { key:k, value:$("cfg").querySelector('[data-k="' + k + '"]').value.trim() }).then(function(r){ b.disabled = false; b.textContent = r && r.ok ? "Saved" : "Failed"; setTimeout(function(){ b.textContent = "Save"; }, 1500); }); }); });
+  $("cfg").querySelectorAll("[data-live]").forEach(function(b){ b.addEventListener("click", function(){ var v = b.getAttribute("data-live"); if(v === "TRUE" && !confirm("This starts emailing Ken's Foods and the vendor at 5 PM every day. Are the client_to and vendor_to lists right?")) return; api("kh_config_set", { key:"digest_live", value:v }).then(function(r){ if(r && r.ok) renderCfg(r.config); }); }); });
+}
+api("kh_config").then(function(r){ if(!r || !r.ok) throw new Error(r && r.error); renderCfg(r.config); if(r.sheet_url) $("sheetLink").href = r.sheet_url; }).catch(function(e){ $("cfg").innerHTML = '<div class="note warn">' + esc(String(e && e.message || e)) + '</div>'; });
+function run(kind, btn){ btn.disabled = true; var t = btn.textContent; btn.textContent = "Sending..."; $("out").classList.remove("hidden"); $("out").textContent = "Working..."; api(kind, { by:$("by").value.trim() }).then(function(r){ $("out").textContent = JSON.stringify(r, null, 1); }).catch(function(e){ $("out").textContent = String(e && e.message || e); }).then(function(){ btn.disabled = false; btn.textContent = t; }); }
+$("daily").addEventListener("click", function(){ run("kh_digest_now", $("daily")); });
+$("weekly").addEventListener("click", function(){ run("kh_weekly_now", $("weekly")); });
+if(P.id){
+  $("itemCard").classList.remove("hidden"); $("itemId").textContent = P.id;
+  api("kh_get", { id:P.id }).then(function(r){
+    if(!r || !r.ok) throw new Error(r && r.error);
+    var d = r.doc; $("itemBody").innerHTML = '<b>' + esc(d.mode || d.area_name || d.shift_name || "") + (d.category ? ": " + esc(d.category) : "") + '</b> · ' + esc(KH.fmtDate(d.created_at)) + (d.submitter ? ' · ' + esc(d.submitter) : '') + (d.porter ? ' · ' + esc(d.porter) : '') + '<br>' + esc(d.summary || d.notes || "");
+    $("status").value = d.status || "New"; $("cwn").value = d.cw_notes || "";
+    if(r.src === "jotform"){ $("save").disabled = true; $("ierr").textContent = "Jotform rows are read-only here."; }
+  }).catch(function(e){ $("ierr").textContent = String(e && e.message || e); });
+  $("save").addEventListener("click", function(){ $("save").disabled = true; try { localStorage.setItem("cwOpsName", $("by").value.trim()); } catch(e){} api("kh_update", { id:P.id, status:$("status").value, cw_notes:$("cwn").value, by:$("by").value.trim() }).then(function(r){ $("save").disabled = false; $("ierr").textContent = r && r.ok ? "Saved." : (r && r.error) || "Failed"; }); });
+}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Request Supplies | Manager Desk</title>
+<!-- build 2026-10-23: Manager Desk supply requests. ?t=porter = porter supplies and chemicals (the Apartments
+     kit from the Vendor Shop catalog, names only, no pricing). ?t=building = building supplies (the Vendor Hub
+     Report Supplies Needed list: paper, soap, liners, air care). Tick items, set quantities, pick the plant,
+     send (kind kh_mgr_request). Saved as a report so it reaches the review queue, the Ops Hub Alerts card and
+     the immediate ops email. Manager passcode (KH.mgrRequire). No fetch on load. -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="stylesheet" href="kh.css">
+<style>
+.sw{display:flex;gap:8px;margin:0 0 14px}
+.sw a{flex:1;text-align:center;text-decoration:none;font-weight:700;font-size:14px;color:var(--black);background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px 10px;min-height:46px}
+.sw a.on{background:var(--black);border-color:var(--black);color:#fff}
+.grp{margin:0 0 14px}
+.grp h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--grey);margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid var(--light)}
+.it{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--light);min-height:48px}
+.it .n{flex:1;font-size:14px;line-height:1.3}
+.it .n small{display:block;font-size:12px;color:var(--grey)}
+.it .q{display:flex;align-items:center;gap:0;flex:none}
+.it .q button{width:40px;height:40px;border:1.5px solid var(--border);background:#fff;font-size:20px;font-weight:700;color:var(--black);cursor:pointer;font-family:inherit;border-radius:8px 0 0 8px}
+.it .q button.plus{border-radius:0 8px 8px 0}
+.it .q input{width:48px;height:40px;text-align:center;border:1.5px solid var(--border);border-left:0;border-right:0;border-radius:0;font-size:15px;font-weight:700;padding:0;min-height:0}
+.it.on{background:#fdf3f3;margin:0 -8px;padding-left:10px;padding-right:10px;border-radius:8px}
+.it.on .n{font-weight:700}
+.picked{font-size:13px;color:var(--grey)}
+.picked b{color:var(--red)}
+.sticky .in .btn{min-width:170px}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="top">
+<div class="bar">
+<a class="back" href="manager.html">&larr; Manager Desk</a>
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>Request Supplies</b>Manager Desk</div>
+</div>
+</header>
+
+<main class="wrap" id="form">
+<h1 id="h1">Request supplies</h1>
+<div class="lead" id="lead"></div>
+<div class="sw"><a href="manager-supplies.html?t=porter" id="swP">Porter supplies &amp; chemicals</a><a href="manager-supplies.html?t=building" id="swB">Building supplies</a></div>
+
+<div class="card">
+<h2>1. Where at the plant?</h2>
+<div class="field" style="margin:0"><select id="prop" class="hidden"></select><div class="hint" id="propHint"></div></div>
+</div>
+
+<div class="card">
+<h2 id="h2">2. What do you need?</h2>
+<div class="sub" id="sub2"></div>
+<div id="cat"></div>
+<div class="picked" id="picked"></div>
+</div>
+
+<div class="card">
+<h2>3. Who and when</h2>
+<div class="row2">
+<div class="field"><label for="who">Your name <span class="req">*</span></label><input type="text" id="who" autocomplete="name" placeholder="First and last name"></div>
+<div class="field"><label for="phone">Your phone</label><input type="tel" id="phone" autocomplete="tel" placeholder="702-555-0100"></div>
+</div>
+<div class="field"><label>How soon?</label><div class="chips" id="urg">
+<button type="button" class="chip on" data-v="Normal">Next regular delivery</button>
+<button type="button" class="chip" data-v="This week">This week</button>
+<button type="button" class="chip" data-v="Urgent - out now">Urgent, we are out now</button>
+</div></div>
+<div class="field" id="whereWrap"><label for="where">Where should it go?</label><input type="text" id="where" placeholder="Janitor closet, leasing office, meet the porter on site"></div>
+<div class="field"><label for="notes">Anything else</label><textarea id="notes" placeholder="Sizes, brands you need to match, which dispenser, anything City Wide should know."></textarea></div>
+<div class="err" id="ferr"></div>
+</div>
+<div style="height:70px"></div>
+</main>
+
+<div class="sticky"><div class="in"><div class="st" id="barText">Goes to your City Wide Facility Solutions Manager.</div><button type="button" class="btn" id="submit">Send request</button></div></div>
+
+<main class="wrap hidden" id="doneWrap">
+<div class="card plain done">
+<div class="big">&#10003;</div>
+<h2>Request sent</h2>
+<p id="doneText"></p>
+<div class="kv" style="justify-content:center;margin-bottom:16px">Reference <span class="ref" id="doneRef"></span></div>
+<div class="btnrow"><a class="btn ghost" href="manager-supplies.html?t=porter" id="doneAgain">Request more</a><a class="btn dark" href="manager.html">Back to the Manager Desk</a></div>
+</div>
+</main>
+
+<footer class="foot"><span class="line">City Wide Facility Solutions, Las Vegas &middot; <a href="tel:7024831874">702-483-1874</a></span></footer>
+
+<script src="kh-shared.js"></script>
+<script>
+var PORTER = [{"g": "Chemicals","items": ["Coastwide Stainless Steel Cleaner & Polish Aerosol, 15 oz, 6 per Carton"]},{"g": "TruShot cartridges","items": ["TruShot 2.0 Trigger Dispensers, 4 per Carton","TruShot 2.0 Glass & Multi-Surface Cleaner Cartridges, 4 Pack","TruShot 2.0 Restroom Cleaner & Disinfectant Cartridges, 4 Pack","TruShot 2.0 Power Cleaner & Degreaser Cartridges, 4 Pack"]},{"g": "Floor cleaner","items": ["Diversey Stride Neutral Floor Cleaner Concentrate, 1 Gallon"]},{"g": "Mopping","items": ["Rubbermaid WaveBrake 2.0 Mop Bucket & Side-Press Wringer, 35 Qt, Yellow","Rubbermaid WaveBrake Dirty Water Bucket Insert, 18 Qt, Red","O'Dell EchoFiber 5 in Microfiber Wet Mop Head, Green","O'Dell EchoFiber 5 in Microfiber Wet Mop Head, Red","O'Dell 60 in Vinyl Coated Aluminum Wet Mop Handle, Yellow"]},{"g": "Sweeping","items": ["Coastwide 12 in Angled Broom, Gray","Coastwide Professional 24 in Push Broom Head, Palmyra","Coastwide Professional 60 in Wood Push Broom Handle, Threaded Metal Tip","Rubbermaid Heavy-Duty Dustpan, Charcoal"]},{"g": "Cloths, liners and tools","items": ["HYGEN 16x16 Microfiber Cloths, Red, 24 Pack","HYGEN 16x16 Microfiber Cloths, Yellow, 24 Pack","HYGEN 16x16 Microfiber Cloths, Green, 24 Pack","HYGEN 16x16 Microfiber Cloths, Blue, 24 Pack","Collapsible Mesh Laundry Hamper, Blue","Mesh Laundry Wash Bags, 5 Pack","Unger 1.5 in Safety Scraper","Unger ErgoTec 4 in Scraper","Rubbermaid BRUTE 44 Gallon Container, Gray","Rubbermaid BRUTE Caddy Bag (Skirt), Yellow","Rubbermaid BRUTE Maid Caddy, 16 x 9 x 5, Gray","Ettore Trash Picker, 44 in, Yellow","Rubbermaid Wet Floor Sign, 25 in, Yellow","Coastwide 40-45 Gallon Trash Liners, 40 x 46, Black, 125 per Box"]},{"g": "Dusting","items": ["Coastwide Extendable Lambswool Duster, Gray"]},{"g": "Restroom","items": ["Hospeco 16 in Toilet Bowl Brush with Caddy, White"]},{"g": "Gloves","items": ["Ammex Powder-Free Black Nitrile Gloves, Large, 100 per Box"]},{"g": "Vacuum","items": ["Atrix Commercial 8 Qt Ergo Backpack Vacuum & Blower"]},{"g": "Carts","items": ["Rubbermaid BRUTE Twist-On Dolly, Black","Rubbermaid Janitorial 3-Shelf Cleaning Cart with Bag, Black"]},{"g": "Uniform polos (black, logoed)","items": ["Men's Sport-Tek PosiCharge Strive Polo, Black","Women's Sport-Tek PosiCharge Strive Polo, Black"]}];
+var BUILDING = [{"g": "Paper Towels", "items": [{"n": "Multifold Paper Towels", "d": "Z-fold, C-fold, or M-fold for universal wall-mounted dispensers."}, {"n": "Singlefold Towels", "d": "Thicker single-fold paper, common in older buildings."}, {"n": "Roll Towels for Manual Dispensers", "d": "Hardwound roll towels for manual pull dispensers. 7.5 to 8 inch rolls."}, {"n": "Roll Towels for Automatic Dispensers", "d": "Touchless systems. We match the core or proprietary refill your dispenser needs."}, {"n": "Centerpull Towels", "d": "Pulled from the center of the roll. Break rooms, kitchens, and utility sinks."}, {"n": "Perforated Kitchen Roll Towels", "d": "Household-style rolls for breakrooms and spill cleanup."}]}, {"g": "Toilet Paper", "items": [{"n": "Standard Toilet Paper Rolls", "d": "Household-size rolls with higher sheet count for standard dispensers."}, {"n": "Jumbo Roll Toilet Paper (JRT)", "d": "9 or 12 inch rolls for high-traffic restrooms. Needs a JRT dispenser."}, {"n": "Mini Jumbo Roll", "d": "Between standard and jumbo. Often in dual-roll dispensers."}, {"n": "Coreless Toilet Paper", "d": "No core, more paper per roll, fewer changeouts. Needs a coreless dispenser."}]}, {"g": "Soap & Sanitizer", "items": [{"n": "Foaming Hand Soap Cartridges", "d": "We match the dispenser system on your wall, whatever brand it is."}, {"n": "Bulk Pourable Soap", "d": "Gallon jugs or 5-gallon buckets for refillable reservoir dispensers."}, {"n": "Hand Sanitizer Cartridges", "d": "Touchless or manual. We match proprietary systems to your dispenser."}, {"n": "Bulk Gallon Hand Sanitizer", "d": "For pump bottles and large refillable dispensers."}, {"n": "Counter Pump Soap Bottles", "d": "Stand-alone pump bottles for sinks without a wall dispenser."}]}, {"g": "Trash Liners", "items": [{"n": "Small Office Can Liners, 7 to 10 Gallon", "d": "Desk-side cans and restroom stall bins. About 24x24 inches."}, {"n": "Medium Trash Liners, 12 to 16 Gallon", "d": "Under-sink breakroom cans and small kitchenettes. About 24x33 inches."}, {"n": "Janitorial Can Liners, 40 to 45 Gallon", "d": "Breakroom, kitchen, and restroom station cans. About 40x48 inches."}, {"n": "Rolling Container Liners, 44 to 55 Gallon", "d": "Large rolling cans on carts and nightly bulk collection. About 38x58 inches."}]}, {"g": "Restroom", "items": [{"n": "Toilet Seat Covers", "d": "Half-fold covers for standard seat cover dispensers."}, {"n": "Urinal Screens", "d": "Deodorizing screens. Tell us a scent preference in the comments if you have one."}, {"n": "Toilet Bowl and Rim Clips", "d": "Bowl and rim air care clips for stalls."}, {"n": "Urinal Mats", "d": "Floor mats that stop splash damage under urinals."}]}, {"g": "Air Care", "items": [{"n": "Air Freshener Dispenser Refills", "d": "Metered aerosol or passive refills. We match the dispenser on the wall."}, {"n": "Air Freshener Sprays and Gels", "d": "Stand-alone cans and gel air care, no dispenser needed."}]}, {"g": "Feminine Hygiene", "items": [{"n": "Feminine Hygiene Dispenser Stock", "d": "Tampons and pads for restroom vending dispensers."}, {"n": "Waxed Disposal Liners", "d": "Kraft receptacle liners for stall disposal units."}]}];
+(function(){
+var $ = KH.$, esc = KH.esc;
+if(!KH.mgrRequire()) return;
+var P = KH.params();
+var T = P.t === "building" ? "building" : "porter";
+var S = { qty:{}, urg:"Normal" };
+var CAT = T === "building" ? BUILDING : PORTER;
+
+$("swP").classList.toggle("on", T === "porter"); $("swB").classList.toggle("on", T === "building");
+$("h1").textContent = T === "building" ? "Request building supplies" : "Request porter supplies";
+$("lead").textContent = T === "building" ? "A building is running low on paper, soap, liners or air care. Tell City Wide which one and what it needs." : "The crew is low on chemicals, cloths, mop heads, liners or gloves. Tick what you need and send it to City Wide.";
+$("sub2").textContent = T === "building" ? "Tap + on anything the building needs. Quantity is cases or packs, roughly. City Wide matches the dispenser." : "Tap + on anything the crew needs. Quantity is how many of that item.";
+$("propHint").textContent = T === "building" ? "Say which area of the plant is running low in the Where box below." : "Supplies for the porter crew at Ken's Foods Las Vegas.";
+$("whereWrap").classList.toggle("hidden", T === "building");
+$("doneAgain").href = "manager-supplies.html?t=" + T;
+$("prop").innerHTML = KH.propertyOptions(true);
+try { var saved = JSON.parse(localStorage.getItem("cwKhMgrReq") || "null"); if(saved){ $("who").value = saved.who || ""; $("phone").value = saved.phone || ""; } } catch(e){}
+try { if(!$("who").value) $("who").value = localStorage.getItem("cwKhMgrName") || ""; } catch(e){}
+try { $("prop").value = localStorage.getItem("cwKhMgrProp") || ""; } catch(e){}
+$("prop").addEventListener("change", function(){ try { localStorage.setItem("cwKhMgrProp", $("prop").value); } catch(e){} });
+
+function render(){
+  $("cat").innerHTML = CAT.map(function(g){
+    return '<div class="grp"><h3>' + esc(g.g) + '</h3>' + g.items.map(function(it){
+      var name = typeof it === "string" ? it : it.n, d = typeof it === "string" ? "" : it.d;
+      var q = S.qty[name] || 0;
+      return '<div class="it' + (q ? ' on' : '') + '" data-n="' + esc(name) + '"><div class="n">' + esc(name) + (d ? '<small>' + esc(d) + '</small>' : '') + '</div>' +
+        '<div class="q"><button type="button" data-m="' + esc(name) + '" aria-label="Less">&minus;</button><input type="number" min="0" max="999" inputmode="numeric" value="' + q + '" data-q="' + esc(name) + '"><button type="button" class="plus" data-p="' + esc(name) + '" aria-label="More">+</button></div></div>';
+    }).join("") + '</div>';
+  }).join("");
+  wire(); count();
+}
+function set(name, v){ v = Math.max(0, Math.min(999, Number(v) || 0)); if(v) S.qty[name] = v; else delete S.qty[name]; var row = document.querySelector('.it[data-n="' + CSS.escape(name) + '"]'); if(row){ row.classList.toggle("on", !!v); row.querySelector("input").value = v; } count(); }
+function wire(){
+  var c = $("cat");
+  c.querySelectorAll("[data-p]").forEach(function(b){ b.addEventListener("click", function(){ var n = b.getAttribute("data-p"); set(n, (S.qty[n] || 0) + 1); }); });
+  c.querySelectorAll("[data-m]").forEach(function(b){ b.addEventListener("click", function(){ var n = b.getAttribute("data-m"); set(n, (S.qty[n] || 0) - 1); }); });
+  c.querySelectorAll("[data-q]").forEach(function(i){ i.addEventListener("change", function(){ set(i.getAttribute("data-q"), i.value); }); });
+}
+function picked(){ return Object.keys(S.qty).map(function(n){ return { name:n, qty:S.qty[n] }; }); }
+function count(){
+  var p = picked(), total = p.reduce(function(a, x){ return a + x.qty; }, 0);
+  $("picked").innerHTML = p.length ? '<b>' + p.length + '</b> item' + (p.length === 1 ? "" : "s") + ' picked, ' + total + ' total' : 'Nothing picked yet.';
+  $("submit").textContent = p.length ? "Send request (" + p.length + ")" : "Send request";
+}
+$("urg").addEventListener("click", function(e){ var b = e.target.closest(".chip"); if(!b) return; S.urg = b.getAttribute("data-v"); $("urg").querySelectorAll(".chip").forEach(function(x){ x.classList.toggle("on", x === b); x.classList.toggle("red", x === b && /urgent/i.test(S.urg)); }); });
+render();
+
+$("submit").addEventListener("click", function(){
+  var p = picked();
+  var err = !$("prop").value ? "Pick the plant." : !p.length ? "Tap + on at least one item." : !$("who").value.trim() ? "Enter your name." : "";
+  $("ferr").textContent = err;
+  if(err){ (err.indexOf("item") >= 0 ? $("cat") : err.indexOf("property") >= 0 ? $("prop") : $("who")).scrollIntoView({ behavior:"smooth", block:"center" }); return; }
+  var btn = $("submit"); btn.disabled = true; btn.textContent = "Sending...";
+  try { localStorage.setItem("cwKhMgrReq", JSON.stringify({ who:$("who").value.trim(), phone:$("phone").value.trim() })); localStorage.setItem("cwKhMgrName", $("who").value.trim()); } catch(e){}
+  KH.mgrApi("kh_mgr_request", { type:T, items:p, property:$("prop").value, by:$("who").value.trim(), phone:$("phone").value.trim(), urgency:S.urg, where:$("where").value.trim(), notes:$("notes").value.trim() }).then(function(r){
+    if(!r || !r.ok) throw new Error((r && r.error) || "Could not send");
+    $("form").classList.add("hidden"); document.querySelector(".sticky").classList.add("hidden"); $("doneWrap").classList.remove("hidden"); window.scrollTo(0, 0);
+    $("doneRef").textContent = r.id;
+    $("doneText").textContent = "Your " + (T === "building" ? "building supplies" : "porter supplies") + " request for " + $("prop").value + " is with your City Wide Facility Solutions Manager (" + p.length + " item" + (p.length === 1 ? "" : "s") + ").";
+  }).catch(function(e){
+    btn.disabled = false; count();
+    var m = String(e && e.message || e);
+    if(/passcode/i.test(m)) return KH.mgrLocked(m);
+    $("ferr").textContent = /fetch|network|json/i.test(m) ? "Could not reach City Wide. Check your connection and tap Send again." : m;
+  });
+});
+})();
+</script>
+</body>
+</html>

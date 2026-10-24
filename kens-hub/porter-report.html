@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Emergency or Maintenance | Porter Desk</title>
+<!-- build 2026-10-23: Porter emergency / maintenance request. Two big doors (EMERGENCY, Maintenance request),
+     then what it is, where, a photo or two, send. Saves as a report (id ovr_, mode "Porter emergency" or
+     "Porter maintenance request", role Porter) through kind kh_submit, so it lands on the FSM review queue
+     and the Ops Hub Alerts card and emails ops at once (Ken's Foods.gs ovNotifyReport_). Never shown on the
+     porter feed. Draft and photos survive a dropped connection (KH.saveDraft / IndexedDB). No fetch on load. -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
+<link rel="stylesheet" href="kh.css">
+<style>
+.doors{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 6px}
+@media(max-width:480px){.doors{grid-template-columns:1fr}}
+.door{display:flex;flex-direction:column;gap:4px;text-align:left;font-family:inherit;color:var(--black);background:var(--white);border:2px solid var(--border);border-radius:14px;padding:18px 16px;min-height:112px;cursor:pointer}
+.door b{font-size:17px;line-height:1.2}
+.door small{font-size:13px;color:var(--grey);line-height:1.35}
+.door.em{border-color:#f0c4c6;background:var(--warnbg)}
+.door.em b{color:var(--red)}
+.door.on{border-color:var(--black);background:var(--black);color:#fff}
+.door.on b,.door.on small{color:#fff}
+.door.em.on{border-color:var(--red);background:var(--red)}
+.step{display:none}
+.step.show{display:block}
+.call{display:block;background:var(--red);color:#fff;border-radius:12px;padding:14px 16px;text-decoration:none;font-weight:700;font-size:16px;line-height:1.3;margin:12px 0}
+.call small{display:block;font-weight:400;font-size:12px;opacity:.9;margin-top:4px}
+.chips .chip{flex:1 1 44%}
+.sticky .in .btn.em{background:var(--red)}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="top">
+<div class="bar">
+<a class="back" href="porter.html">&larr; Porter Desk</a>
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<div class="tag"><b>Emergency or Maintenance</b>Porter Desk</div>
+</div>
+</header>
+
+<main class="wrap" id="form">
+<h1>Report an emergency or a maintenance issue</h1>
+<div class="lead">This goes straight to your Facility Solutions Manager and the City Wide ops team.</div>
+
+<div class="card" id="s1">
+<h2>1. Which one is it?</h2>
+<div class="doors" id="doors">
+<button type="button" class="door em" data-v="Porter emergency"><b>EMERGENCY</b><small>Dangerous or urgent right now. Water pouring, fire or smoke, someone hurt, a hazard residents can reach.</small></button>
+<button type="button" class="door" data-v="Porter maintenance request"><b>Maintenance request</b><small>Something broken or not working that the plant should fix. Not urgent today.</small></button>
+</div>
+<a class="call hidden" id="callEm" href="tel:911">If anyone is hurt or there is fire, call 911 first.<small>Then call City Wide at 702-483-1874. Send this report after.</small></a>
+<a class="call hidden" id="callCw" href="tel:7024831874" style="background:var(--black)">Call City Wide 702-483-1874<small>Tap to call. Send this report too so it is on record.</small></a>
+</div>
+
+<div class="card step" id="s2">
+<h2>2. Where and who</h2>
+<select id="prop" class="hidden"></select>
+<div class="field"><label for="who">Your name <span class="req">*</span></label><input type="text" id="who" autocomplete="name" placeholder="First and last name"><div class="hint">Remembered on this phone.</div></div>
+<div class="field"><label for="phone">Your phone</label><input type="tel" id="phone" autocomplete="tel" placeholder="702-555-0100"><div class="hint">So the FSM can call you back about this.</div></div>
+</div>
+
+<div class="card step" id="s3">
+<h2>3. What is it? <span class="req">*</span></h2>
+<div class="chips" id="catChips"></div>
+<div class="field" style="margin-top:14px"><label for="where">Where exactly? <span class="req">*</span></label><input type="text" id="where" placeholder="Building 3, 2nd floor hallway by unit 2104"></div>
+<div class="field"><label for="what">What is happening? <span class="req">*</span></label><textarea id="what" placeholder="Say what you see. Example: Water running from the ceiling onto the carpet, about a 6 foot puddle, still dripping."></textarea></div>
+</div>
+
+<div class="card step" id="s4">
+<h2>4. Photo</h2>
+<div class="sub">Take a picture if it is safe to. One or two is plenty.</div>
+<div class="photos"><div class="pgrid" id="pgrid"></div><div class="pcount" id="pcount"></div></div>
+<input type="file" id="pfile" accept="image/*" class="hidden">
+<div class="err" id="ferr"></div>
+</div>
+<div style="height:70px"></div>
+</main>
+
+<div class="sticky step" id="bar"><div class="in"><div class="st" id="barText">Pick EMERGENCY or Maintenance request first.</div><button type="button" class="btn" id="submit">Send to City Wide</button></div></div>
+
+<main class="wrap hidden" id="doneWrap">
+<div class="card plain done">
+<div class="big">&#10003;</div>
+<h2 id="doneHead">Sent to City Wide</h2>
+<p id="doneText"></p>
+<div class="kv" style="justify-content:center;margin-bottom:16px">Reference <span class="ref" id="doneRef"></span></div>
+<div id="donePhotos"></div>
+<div class="btnrow"><a class="btn ghost" href="porter-report.html">Report another</a><a class="btn dark" href="porter.html">Back to the Porter Desk</a></div>
+</div>
+</main>
+
+<footer class="foot"><span class="line">City Wide Facility Solutions, Las Vegas &middot; <a href="tel:7024831874">702-483-1874</a></span></footer>
+
+<script src="kh-shared.js"></script>
+<script>
+(function(){
+var $ = KH.$, esc = KH.esc;
+if(!KH.require()) return;
+
+var CATS = {
+  "Porter emergency": ["Water leak or flooding", "Fire or smoke", "Someone is hurt", "Gas smell", "Broken glass", "Blood or biohazard", "Elevator stuck or someone trapped", "Electrical sparks or exposed wires", "Door or gate will not secure", "Sewage backup", "Other emergency"],
+  "Porter maintenance request": ["Light out", "Plumbing (drip, clog, running toilet)", "Door, gate or lock", "Elevator", "Dispenser broken or missing", "Trash enclosure or dumpster", "Pool or spa area", "Pet station", "Landscaping or irrigation", "Graffiti or damage", "Pest sighting", "Other"]
+};
+var S = { mode:"", cat:"", photos:[], id: KH.uid("ovr_") };
+var draft = KH.loadDraft("porter-report");
+if(draft && draft.id){ S.mode = draft.mode || ""; S.cat = draft.cat || ""; S.id = draft.id; S.where = draft.where; S.what = draft.what; }
+var MAXP = 3;
+
+/* property and name, remembered on the phone */
+$("prop").innerHTML = KH.propertyOptions(true);
+$("prop").value = (draft && draft.property) || KH.porterProp() || "";
+try { var me = JSON.parse(localStorage.getItem("cwKhPorter") || "null"); if(me){ $("who").value = me.who || ""; $("phone").value = me.phone || ""; } } catch(e){}
+if(draft){ if(draft.where) $("where").value = draft.where; if(draft.what) $("what").value = draft.what; }
+
+function persist(){
+  KH.saveDraft("porter-report", { id:S.id, mode:S.mode, cat:S.cat, property:$("prop").value, where:$("where").value, what:$("what").value, photos:S.photos.map(function(p){ return { pid:p.pid, w:p.w, h:p.h }; }) });
+  try { localStorage.setItem("cwKhPorter", JSON.stringify({ who:$("who").value, phone:$("phone").value })); } catch(e){}
+}
+function show(id, on){ $(id).classList.toggle("show", !!on); }
+function renderMode(){
+  $("doors").querySelectorAll(".door").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-v") === S.mode); });
+  var em = S.mode === "Porter emergency";
+  $("callEm").classList.toggle("hidden", !em);
+  $("callCw").classList.toggle("hidden", !S.mode || em);
+  show("s2", !!S.mode); show("s3", !!S.mode); show("s4", !!S.mode); show("bar", !!S.mode);
+  $("submit").classList.toggle("em", em);
+  $("submit").textContent = em ? "Send EMERGENCY now" : "Send to City Wide";
+  $("barText").textContent = em ? "Goes to your FSM and the ops team the moment you tap send." : "Your FSM gets this right away and adds it to the plant's weekly report.";
+  if(!S.mode) return;
+  if(S.cat && CATS[S.mode].indexOf(S.cat) < 0) S.cat = "";
+  $("catChips").innerHTML = CATS[S.mode].map(function(c){ return '<button type="button" class="chip' + (c === S.cat ? ' on' + (em ? ' red' : '') : '') + '" data-v="' + esc(c) + '">' + esc(c) + '</button>'; }).join("");
+}
+$("doors").addEventListener("click", function(e){
+  var b = e.target.closest(".door"); if(!b) return;
+  S.mode = b.getAttribute("data-v"); renderMode(); persist();
+  if(window.innerWidth < 700) setTimeout(function(){ $("s2").scrollIntoView({ behavior:"smooth", block:"start" }); }, 50);
+});
+$("catChips").addEventListener("click", function(e){
+  var b = e.target.closest(".chip"); if(!b) return;
+  S.cat = b.getAttribute("data-v"); renderMode(); persist();
+});
+["prop","who","phone","where","what"].forEach(function(id){ $(id).addEventListener("input", persist); $(id).addEventListener("change", persist); });
+$("prop").addEventListener("change", function(){ KH.porterProp($("prop").value); });
+renderMode();
+
+/* photos */
+function renderPhotos(){
+  var g = $("pgrid");
+  g.innerHTML = S.photos.map(function(p, i){ return '<div class="ph"><img src="' + p.thumb + '" alt=""><button type="button" class="rm" data-i="' + i + '" aria-label="Remove photo">&times;</button></div>'; }).join("") +
+    (S.photos.length < MAXP ? '<div class="add" id="padd"><span class="big">+</span>Take a photo</div>' : "");
+  $("pcount").textContent = S.photos.length ? S.photos.length + " of " + MAXP : "";
+  var add = $("padd"); if(add) add.addEventListener("click", function(){ $("pfile").value = ""; $("pfile").click(); });
+  g.querySelectorAll(".rm").forEach(function(b){ b.addEventListener("click", function(){ var ph = S.photos.splice(Number(b.getAttribute("data-i")), 1)[0]; if(ph) KH.photoDrop(S.id + ":" + ph.pid); renderPhotos(); }); });
+}
+$("pfile").addEventListener("change", function(){
+  var f = $("pfile").files && $("pfile").files[0]; if(!f) return;
+  $("ferr").textContent = "";
+  KH.shrink(f, 1280, 0.74).then(function(r){ return KH.thumb(r.data, 240).then(function(t){
+    var pid = KH.uid("ph_");
+    S.photos.push({ pid:pid, data:r.data, thumb:t, w:r.w, h:r.h });
+    KH.photoStore(S.id + ":" + pid, r.data);
+    renderPhotos();
+  }); }).catch(function(){ $("ferr").textContent = "Could not read that photo. Try another."; });
+});
+renderPhotos();
+/* photos from an interrupted draft come back from the phone's own store */
+if(draft && (draft.photos || []).length){
+  draft.photos.reduce(function(chain, p){ return chain.then(function(){ return KH.photoLoad(S.id + ":" + p.pid).then(function(d){ if(!d) return; return KH.thumb(d, 240).then(function(t){ S.photos.push({ pid:p.pid, data:d, thumb:t, w:p.w, h:p.h }); renderPhotos(); }); }); }); }, Promise.resolve());
+}
+
+/* submit */
+function val(id){ return String($(id).value || "").trim(); }
+function validateForm(){
+  if(!S.mode) return "Pick EMERGENCY or Maintenance request.";
+  if(!val("prop")) return "Pick the plant.";
+  if(!val("who")) return "Enter your name.";
+  if(!S.cat) return "Pick what it is.";
+  if(!val("where")) return "Say where it is.";
+  if(!val("what")) return "Say what is happening.";
+  return "";
+}
+$("submit").addEventListener("click", function(){
+  var e = validateForm();
+  $("ferr").textContent = e;
+  if(e){ var el = !S.mode ? $("s1") : !val("prop") || !val("who") ? $("s2") : $("s3"); el.scrollIntoView({ behavior:"smooth", block:"start" }); return; }
+  var em = S.mode === "Porter emergency";
+  var doc = {
+    id: S.id,
+    created_at: new Date().toISOString(),
+    property: val("prop"), submitter: val("who"), role: "Porter", phone: val("phone"), email: "",
+    mode: S.mode, category: S.cat, subcategory: "", urgency: em ? "Emergency - right now" : "Normal", location: val("where").slice(0, 300),
+    summary: (S.cat + " - " + val("what")).slice(0, 400), notes: "",
+    answers: [{ id:"what", q:"What is happening", a:val("what") }],
+    hazard_notes: [],
+    photos: S.photos.map(function(p){ return { pid:p.pid, w:p.w, h:p.h }; }),
+    status: "New"
+  };
+  var btn = $("submit"); btn.disabled = true; btn.textContent = "Sending...";
+  persist();
+  KH.api("kh_submit", { doc: doc }).then(function(r){
+    if(!r || !r.ok){ throw new Error((r && r.error) || "Could not send"); }
+    KH.clearDraft("porter-report");
+    $("form").classList.add("hidden"); $("bar").classList.remove("show"); $("doneWrap").classList.remove("hidden"); window.scrollTo(0, 0);
+    $("doneHead").textContent = em ? "EMERGENCY sent" : "Sent to City Wide";
+    $("doneRef").textContent = doc.id;
+    $("doneText").textContent = (em ? "Your emergency report for " + doc.property + " is with the City Wide team now. If you have not called yet, call 702-483-1874." : "Your maintenance request for " + doc.property + " is with your FSM. It goes to the plant with the weekly report.");
+    if(S.photos.length){
+      $("donePhotos").innerHTML = '<div class="note info" id="pstat">Uploading photos...</div><div class="progress"><i id="pbar"></i></div>';
+      KH.uploadPhotos(doc.id, S.photos, function(i, n){ $("pbar").style.width = Math.round(((i + 1) / n) * 100) + "%"; $("pstat").textContent = "Uploading photo " + (i + 1) + " of " + n + "..."; })
+        .then(function(failed){ $("pstat").className = "note " + (failed ? "warn" : "ok"); $("pstat").textContent = failed ? failed + " photo(s) did not upload. Your report was still sent." : "Photos uploaded."; KH.photoDrop(doc.id + ":"); });
+    }
+  }).catch(function(err){
+    btn.disabled = false; btn.textContent = em ? "Send EMERGENCY now" : "Send to City Wide";
+    var m = String(err && err.message || err);
+    if(/passcode/i.test(m)) return KH.locked(m);
+    $("ferr").textContent = /fetch|network|json/i.test(m) ? "Could not reach City Wide. Check your connection and tap Send again. Nothing you typed is lost." : m;
+  });
+});
+})();
+</script>
+</body>
+</html>
