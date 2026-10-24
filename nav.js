@@ -1,17 +1,11 @@
 /* nav.js for the Team Portal. Seeded from the page menu on 2026-09-13 by Claude.
    The Site Admin hub (cw-admin-hub/site-admin.html) republishes this file; do not edit by hand.
-   Edited by hand 2026-10-22 (Client Hubs sidecard: Ovation Hub, Ovation Review Queue): before the next Site Admin publish, click Import live menu.
+   Edited by hand 2026-10-24 (Site Admin strip removed at TJ's request; Client Hubs sidecard removed, the Client Portals section is page markup now): before the next Site Admin publish, click Import live menu.
    The page keeps its own markup as a fallback if this file is missing or malformed. */
 window.CW_NAV = {
  "hub": "portal",
  "label": "Team Portal",
  "menu": [
-  {
-   "label": "Site Admin",
-   "style": "strip",
-   "href": "https://citywidelv.github.io/cw-admin-hub/site-admin.html",
-   "note": "Menus, lists and the live email switches for every hub. Site Admin passcode required."
-  },
   {
    "label": "Building Information Sheets",
    "items": [
@@ -26,23 +20,6 @@ window.CW_NAV = {
    ],
    "note": "One living DBIS per account: access, schedule, alarms, locations, tenants, photos.",
    "style": "dbis"
-  },
-  {
-   "label": "Client Hubs",
-   "items": [
-    {
-     "ghead": "Ovation Property Management"
-    },
-    {
-     "label": "Ovation Hub (client side)",
-     "href": "https://citywidelv.github.io/ovation-hub/"
-    },
-    {
-     "label": "Ovation Review Queue",
-     "href": "https://citywidelv.github.io/ovation-hub/review.html"
-    }
-   ],
-   "note": "Client-facing pages with their own passcode. Share the link, not the team passcode."
   },
   {
    "label": "Team & Admin",
