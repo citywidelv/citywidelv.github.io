@@ -380,7 +380,7 @@ function khJfRead_(sh) {
   return { head: head, rows: sh.getRange(2, 1, last - 1, lastC).getValues() };
 }
 function khJfCol_(head, re) { for (var i = 0; i < head.length; i++) if (re.test(head[i])) return i; return -1; }
-function khJfStr_(v) { if (v instanceof Date) { var d = khJfDate_(v); return d ? Utilities.formatDate(d, KH_TZ, 'yyyy-MM-dd h:mm a') : ''; } return String(v === null || v === undefined ? '' : v).trim(); }
+function khJfStr_(v) { if (v instanceof Date) { if (Utilities.formatDate(v, 'UTC', 'yyyy') === '1899') return Utilities.formatDate(v, 'UTC', 'h:mm a'); var d = khJfDate_(v); return d ? Utilities.formatDate(d, KH_TZ, 'yyyy-MM-dd h:mm a') : ''; } return String(v === null || v === undefined ? '' : v).trim(); }
 // Jotform's shift dropdown values and the hub's shift names.
 function khShiftName_(s) { s = String(s || ''); if (/^1/.test(s)) return '1st Shift'; if (/^2/.test(s)) return '2nd Shift'; if (/^3/.test(s)) return '3rd Shift'; return s; }
 var KH_AREA_NAMES = { hygieneroom: 'Hygiene Room', hallways1st: 'Hallways (1st Floor)', uniformroom: 'Uniform Room', breakroom: 'Break Room (Cantina)', mensrestroom: "Men's Restroom / Locker Room", womensrestroom: "Women's Restroom / Locker Room", staircases: 'Staircases (Front & Back)', truckerlounge: 'Trucker Lounge', firstflooroffices: '1st Floor Offices (Carpet)', bathrooms1st: 'Bathrooms (1st Floor)', conferenceroom: 'Conference Room (1st Floor)', trainingrooms: 'Training Rooms (2nd Floor)', halls2nd: 'Halls (2nd Floor)', hroffices: 'HR Offices (Carpet)', elevators: 'Elevators', ptroom: 'PT Room & EHS Office', maintenanceoffices: 'Maintenance Offices', warehousemanagers: 'Warehouse Managers Offices', qalab: 'QA Lab', reception: 'Reception', culinarycenter: 'Culinary Center', warehouseoffices: 'Warehouse Offices', deepcleaning: 'Deep Cleaning' };
@@ -611,8 +611,54 @@ function khDigestWeekly(opts) {
   var cfg = khConfig_(), now = new Date(), items = khAllItems_(7);
   var to = khEmails_(cfg.weekly_to); if (!to.length) return { ok: false, error: 'Config!weekly_to is blank' };
   var span = Utilities.formatDate(new Date(Date.now() - 7 * 86400000), KH_TZ, 'MMM d') + ' to ' + Utilities.formatDate(now, KH_TZ, 'MMM d, yyyy');
-  khMail_({ to: to.join(','), subject: 'Weekly report - ' + KH_SITE + ' - week of ' + Utilities.formatDate(now, KH_TZ, 'MMM d'), body: khDigestPlain_(items, span), htmlBody: khDigestHtml_('Weekly report', span, items, 'team') });
+  khMail_({ to: to.join(','), subject: 'Weekly report - ' + KH_SITE + ' - week of ' + Utilities.formatDate(now, KH_TZ, 'MMM d'), body: khWeeklyPlain_(items, span), htmlBody: khWeeklyHtml_(span, items) });
   return { ok: true, items: items.length, sent: to };
+}
+// The weekly is a roll-up, not a card per round: a week is ~180 rounds and a card each blows the email body limit.
+function khWeeklyRows_(items) {
+  var days = {}, order = [];
+  items.forEach(function (x) {
+    var d = x.day || khLocalDay_(x.created_at) || 'Undated';
+    if (!days[d]) { days[d] = { day: d, rounds: 0, shifts: 0, yes: 0, total: 0, issues: 0, msgs: 0, porters: {} }; order.push(d); }
+    var r = days[d];
+    if (x.type === 'area') { r.rounds++; r.yes += Number(x.yes) || 0; r.total += Number(x.total) || 0; if (Number(x.no) > 0) r.issues++; }
+    else if (x.type === 'shift') { r.shifts++; if (Number(x.no) > 0 || Number(x.late) > 0) r.issues++; }
+    else r.msgs++;
+    if (x.porter) r.porters[x.porter] = 1;
+  });
+  order.sort().reverse();
+  return order.map(function (d) { return days[d]; });
+}
+function khIsException_(x) { return x.type === 'report' || Number(x.no) > 0 || Number(x.late) > 0; }
+function khWeeklyPlain_(items, span) {
+  var out = [KH_SITE + ' - weekly roll-up - ' + span, ''];
+  khWeeklyRows_(items).forEach(function (r) { out.push(khDay_(r.day) + ': ' + r.rounds + ' rounds, ' + r.shifts + ' shift reports, ' + r.yes + ' of ' + r.total + ' tasks, ' + r.issues + ' with an issue, ' + r.msgs + ' messages'); });
+  out.push('', 'Exceptions:');
+  items.filter(khIsException_).forEach(function (x) { out.push('  ' + khNice_(x.created_at) + ' - ' + (x.type === 'report' ? x.mode + ': ' + (x.summary || '') : (x.area || x.shift) + ' - ' + x.porter + ' - ' + (x.issues || ''))); });
+  out.push('', 'Open the hub: ' + KH_HUB + 'review.html');
+  return out.join('\n');
+}
+function khWeeklyHtml_(span, items) {
+  var F = 'font-family:Verdana,Arial,sans-serif;', e = khEsc_, rows = khWeeklyRows_(items);
+  var tot = { rounds: 0, shifts: 0, yes: 0, total: 0, issues: 0, msgs: 0 };
+  rows.forEach(function (r) { Object.keys(tot).forEach(function (k) { tot[k] += r[k]; }); });
+  var th = function (t, al) { return '<th align="' + (al || 'right') + '" style="padding:6px 8px;' + F + 'font-size:10px;color:#636466;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #08203A;">' + e(t) + '</th>'; };
+  var td = function (t, al, bold) { return '<td align="' + (al || 'right') + '" style="padding:6px 8px;' + F + 'font-size:12px;color:#2d2a26;border-bottom:1px solid #E5E5E5;' + (bold ? 'font-weight:bold;' : '') + '">' + e(t) + '</td>'; };
+  var inner = '<p style="margin:0 0 12px;' + F + 'font-size:13px;color:#2d2a26;line-height:1.55;">' + e(KH_SITE) + '. Porter rounds, end-of-shift reports and messages for ' + e(span) + '. Totals first, then only the rounds that had an issue and the messages that came in.</p>';
+  inner += '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 18px;"><tr>' + th('Day', 'left') + th('Rounds') + th('Shift reports') + th('Tasks done') + th('With an issue') + th('Messages') + '</tr>';
+  rows.forEach(function (r) { inner += '<tr>' + td(Utilities.formatDate(new Date(r.day + 'T12:00:00'), KH_TZ, 'EEE MMM d'), 'left') + td(r.rounds) + td(r.shifts) + td(r.yes + ' / ' + r.total) + td(r.issues) + td(r.msgs) + '</tr>'; });
+  inner += '<tr>' + td('Week', 'left', true) + td(tot.rounds, 'right', true) + td(tot.shifts, 'right', true) + td(tot.yes + ' / ' + tot.total, 'right', true) + td(tot.issues, 'right', true) + td(tot.msgs, 'right', true) + '</tr></table>';
+  var ex = items.filter(khIsException_);
+  inner += '<h2 style="margin:18px 0 8px;' + F + 'font-size:13px;font-weight:bold;color:#2d2a26;border-bottom:2px solid #D22730;padding-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;">Exceptions <span style="color:#636466;font-weight:normal;text-transform:none;letter-spacing:0;">(' + ex.length + ')</span></h2>';
+  if (!ex.length) inner += '<p style="margin:0;' + F + 'font-size:13px;color:#636466;">None. Every logged round was completed on time and no messages came in.</p>';
+  ex.slice(0, 120).forEach(function (x) {
+    var line = x.type === 'report' ? '<b>' + e(x.mode) + (x.category && x.category !== x.mode ? ': ' + e(x.category) : '') + '</b> ' + e(khStr_(x.summary, 220)) + (x.submitter ? ' <span style="color:#636466;">(' + e(x.submitter) + ')</span>' : '')
+      : '<b>' + e(x.area || (x.shift + ' end of shift')) + '</b> ' + (x.porter ? e(x.porter) + ', ' : '') + e(khStr_(x.issues, 260));
+    inner += '<p style="margin:0 0 6px;' + F + 'font-size:12px;color:#2d2a26;line-height:1.45;border-left:3px solid ' + (x.type === 'report' ? (x.emergency ? '#D22730' : '#08203A') : '#E5B423') + ';padding-left:10px;"><span style="color:#636466;">' + e(khNice_(x.created_at)) + '</span> ' + line + '</p>';
+  });
+  if (ex.length > 120) inner += '<p style="margin:6px 0 0;' + F + 'font-size:11px;color:#636466;">' + (ex.length - 120) + ' more on the hub.</p>';
+  inner += khButton_('Open the City Wide review page', KH_HUB + 'review.html');
+  return khShell_('Weekly report', span, inner, 'Internal weekly roll-up for City Wide.');
 }
 function khGroupDays_(items) {
   var days = {}, order = [];
