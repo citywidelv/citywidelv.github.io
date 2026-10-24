@@ -12,7 +12,7 @@ header.top .bar{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;ali
 header.top img{height:32px;width:auto;display:block}
 .brands{display:flex;align-items:center;gap:12px;min-width:0}
 .brands img.cw{height:30px;width:auto}
-.brands img.ovl{height:22px;width:auto}
+.brands img.ovl{height:28px;width:auto}
 .brands img{max-width:100%;flex:0 1 auto}
 .brands .div{width:1px;height:26px;background:var(--ov-border);flex:none}
 header.top .bar .brands{flex:1;justify-content:flex-start}
@@ -119,7 +119,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .lockcard .brands{justify-content:center;margin:0 0 14px}
 .lockcard .brands img{margin:0}
 .lockcard .brands img.cw{height:34px}
-.lockcard .brands img.ovl{height:26px}
+.lockcard .brands img.ovl{height:34px}
 .lockcard .brands .div{height:30px}
 .lockcard h3{font-size:1.05rem;font-weight:700}
 .lockcard .for{font-size:12px;color:var(--grey);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
@@ -130,7 +130,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 footer.foot{text-align:center;font-size:12px;color:var(--grey);padding:20px 16px 90px}
 footer.foot .brands{justify-content:center;margin-bottom:10px;opacity:.85}
 footer.foot .brands img.cw{height:24px}
-footer.foot .brands img.ovl{height:18px}
+footer.foot .brands img.ovl{height:22px}
 footer.foot .brands .div{height:20px}
 footer.foot .line{display:block;margin-top:4px}
 footer.foot a{color:var(--grey);font-weight:700;text-decoration:none}
@@ -162,14 +162,14 @@ button,.chip,.btn,.check,.ahead,.tile,.add{touch-action:manipulation}
   header.top img{height:26px}
   .brands{gap:8px}
   .brands img.cw{height:24px}
-  .brands img.ovl{height:17px}
+  .brands img.ovl{height:22px}
   .brands .div{height:20px}
   /* sub pages: back link left, logos right, the page title is the H1 just below */
   header.top .bar .back ~ .tag{display:none}
   header.top .bar .back + .brands{justify-content:flex-end;flex:1}
   .lockcard .brands{gap:10px}
   .lockcard .brands img.cw{height:26px}
-  .lockcard .brands img.ovl{height:20px}
+  .lockcard .brands img.ovl{height:26px}
   .lockcard .brands .div{height:22px}
   header.top .tag{font-size:0;border-left-width:2px;padding-left:8px;line-height:1.2}
   header.top .tag b{font-size:12px}

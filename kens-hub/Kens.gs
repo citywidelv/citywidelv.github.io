@@ -98,7 +98,7 @@ function khDispatch(d) {
     if (!role) return khOut_({ ok: false, error: 'Bad passcode' });
     var client = ['kh_submit', 'kh_photo_put', 'kh_feed', 'kh_history', 'kh_get', 'kh_photo_get'];
     var manager = ['kh_mgr_request'];
-    var team = ['kh_update', 'kh_config', 'kh_config_set', 'kh_digest_now', 'kh_weekly_now'];
+    var team = ['kh_update', 'kh_config', 'kh_config_set', 'kh_digest_now', 'kh_weekly_now', 'kh_warm'];
     if (manager.indexOf(kind) >= 0 && role === 'client') return khOut_({ ok: false, error: 'Bad passcode' });
     if (team.indexOf(kind) >= 0 && role !== 'team') return khOut_({ ok: false, error: 'Bad passcode' });
     if (client.indexOf(kind) < 0 && manager.indexOf(kind) < 0 && team.indexOf(kind) < 0) return khOut_({ ok: false, error: 'Unknown kh kind' });
@@ -115,6 +115,7 @@ function khDispatch(d) {
     if (kind === 'kh_config_set') { khConfigSet_(String(d.key || ''), String(d.value || '')); return khOut_({ ok: true, config: khConfig_() }); }
     if (kind === 'kh_digest_now') return khOut_(khDigestDaily({ by: khStr_(d.by, 80) }));
     if (kind === 'kh_weekly_now') return khOut_(khDigestWeekly({ by: khStr_(d.by, 80) }));
+    if (kind === 'kh_warm') { var inst = ''; if (d.install) { khInstallTriggers(); inst = 'triggers installed'; } return khOut_({ ok: true, rows: khWarmCache(), note: inst }); }
     return khOut_({ ok: false, error: 'Unknown kh kind' });
   } catch (err) {
     return khOut_({ ok: false, error: String(err && err.message || err) });
@@ -196,7 +197,7 @@ function khFindRow_(sh, id) {
   for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === id) return i + 2;
   return 0;
 }
-function khCell_(header, d) { if (header === 'service_date') return Utilities.formatDate(d, KH_TZ, 'yyyy-MM-dd'); return d.toISOString(); }
+function khCell_(header, d) { if (header === 'service_date') return Utilities.formatDate(d, KH_TZ, 'yyyy-MM-dd'); if (Utilities.formatDate(d, 'UTC', 'yyyy') === '1899') return Utilities.formatDate(d, 'UTC', 'h:mm a'); return d.toISOString(); }
 function khStr_(v, n) { return String(v === undefined || v === null ? '' : v).slice(0, n || 500); }
 function khNow_() { return new Date().toISOString(); }
 function khEsc_(s) { return String(s === undefined || s === null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -260,7 +261,6 @@ function khSubmit_(d) {
   var meta = khUpsert_(type, doc, true);
   var notified = '';
   if (type === 'report' && !d.resubmit) { try { notified = khNotifyReport_(doc); } catch (e2) { notified = ''; } }
-  try { CacheService.getScriptCache().remove('kh_hub_rows'); } catch (e3) {}
   return khOut_({ ok: true, id: meta.id, type: type, notified: notified });
 }
 function khPhotoPut_(d) {
@@ -387,10 +387,31 @@ var KH_AREA_NAMES = { hygieneroom: 'Hygiene Room', hallways1st: 'Hallways (1st F
 function khAreaName_(k) { var key = String(k || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return KH_AREA_NAMES[key] || String(k || ''); }
 
 // Parses the three Jotform sheets into history items. Full task detail is kept per row so kh_get can show it.
-function khJotformItems_() {
-  var cache = null, hit = null;
-  try { cache = CacheService.getScriptCache(); hit = cache.get('kh_jf_items'); } catch (e) {}
-  if (hit) { try { return JSON.parse(hit); } catch (e2) {} }
+// Lean copies (no task detail) are cached in 90 KB chunks for 10 minutes; khWarmCache (every 10 min trigger) keeps
+// the cache warm so history.html never pays the 6 to 8 s cold read of the two wide Jotform sheets.
+function khCacheGet_(key) {
+  try {
+    var cache = CacheService.getScriptCache(), n = Number(cache.get(key + '_n') || 0);
+    if (!n) return null;
+    var keys = []; for (var i = 0; i < n; i++) keys.push(key + '_' + i);
+    var parts = cache.getAll(keys), txt = '';
+    for (var k = 0; k < n; k++) { if (!parts[key + '_' + k]) return null; txt += parts[key + '_' + k]; }
+    return JSON.parse(txt);
+  } catch (e) { return null; }
+}
+function khCachePut_(key, obj, ttl) {
+  try {
+    var txt = JSON.stringify(obj), size = 90000, map = {}, n = 0;
+    for (var i = 0; i < txt.length; i += size) { map[key + '_' + n] = txt.slice(i, i + size); n++; }
+    if (n > 40) return false;
+    map[key + '_n'] = String(n);
+    CacheService.getScriptCache().putAll(map, ttl || 600);
+    return true;
+  } catch (e) { return false; }
+}
+function khJotformItems_(fresh) {
+  var hit = fresh ? null : khCacheGet_('kh_jf');
+  if (hit) return hit;
   var out = [];
   // Area Cleaning Checklist (Detailed): Porter Name, Date, Shift, Area, round dropdowns, Yes/No matrices.
   var sh = khJfSheet_(KH_JF_AREA_PROP);
@@ -452,15 +473,13 @@ function khJotformItems_() {
         submitter: khJfStr_(v[rWho]), role: "Ken's Foods staff", mode: 'Message to City Wide', category: 'Communication', area: khJfStr_(rArea >= 0 ? v[rArea] : ''), urgency: '', summary: khJfStr_(v[rWhat]).slice(0, 400), photos: 0, status: 'Jotform' });
     });
   }
-  // Cache a lean copy (no task detail) when it fits; the full list is rebuilt per call otherwise.
-  try {
-    var lean = JSON.stringify(out.map(function (x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== 'tasks' && k !== 'stops') o[k] = x[k]; }); return o; }));
-    if (cache && lean.length < 95000) cache.put('kh_jf_items', lean, 600);
-  } catch (e3) {}
+  khCachePut_('kh_jf', out.map(function (x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== 'tasks' && k !== 'stops') o[k] = x[k]; }); return o; }), 900);
   return out;
 }
 function khJfItem_(id) { var all = khJotformItemsFull_(); for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i]; return null; }
-function khJotformItemsFull_() { try { CacheService.getScriptCache().remove('kh_jf_items'); } catch (e) {} return khJotformItems_(); }
+function khJotformItemsFull_() { return khJotformItems_(true); }
+// Time trigger, every 10 minutes: rebuilds the Jotform cache so page loads stay fast.
+function khWarmCache() { var n = khJotformItems_(true).length; Logger.log('Jotform cache warmed: ' + n + ' rows'); return n; }
 
 function khGet_(d) {
   var id = String(d.id || ''), role = d._role;
@@ -574,10 +593,11 @@ function khNotifyReport_(doc) {
 
 // ---------------------------------------------------------------- digests --
 function khInstallTriggers() {
-  ScriptApp.getProjectTriggers().forEach(function (t) { if (['khDigestDaily', 'khDigestWeekly'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (['khDigestDaily', 'khDigestWeekly', 'khWarmCache'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('khDigestDaily').timeBased().atHour(17).everyDays(1).inTimezone(KH_TZ).create();
   ScriptApp.newTrigger('khDigestWeekly').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(7).inTimezone(KH_TZ).create();
-  Logger.log('Triggers installed: khDigestDaily 5 PM daily, khDigestWeekly Monday 7 AM (' + KH_TZ + ')');
+  ScriptApp.newTrigger('khWarmCache').timeBased().everyMinutes(10).create();
+  Logger.log('Triggers installed: khDigestDaily 5 PM daily, khDigestWeekly Monday 7 AM (' + KH_TZ + '), khWarmCache every 10 min');
 }
 // Everything submitted since the last daily digest (Config!last_daily_at; first run = the last 24 hours).
 function khDigestDaily(opts) {

@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
 <link rel="stylesheet" href="kh.css">
 <style>
-.brands img.ovl{height:36px}
+.brands img.ovl{height:30px}
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
 .filters .chip{min-height:38px;padding:7px 12px;font-size:13px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 16px}
@@ -84,13 +84,19 @@ if(tier === "manager") $("back").href = "manager.html"; else if(tier === "team")
 var api = function(kind, body){ body = body || {}; body.kind = kind; body.passcode = pass; return KH.post(body); };
 
 var F = { days:7, type:"", issues:false }, DATA = [];
+/* Paint from the last result on this device at once, then refresh from the server in the background. */
+function ckey(){ return "cwKhHist_" + tier + "_" + F.days; }
 function load(){
-  $("list").innerHTML = '<div class="empty">Loading...</div>';
+  var cached = null; try { cached = JSON.parse(localStorage.getItem(ckey()) || "null"); } catch(e){}
+  if(cached && cached.items){ DATA = cached.items; render(); $("lead").setAttribute("data-stale", "1"); stamp(cached.at, true); }
+  else $("list").innerHTML = '<div class="empty">Loading...</div>';
   api("kh_history", { days:F.days }).then(function(r){
     if(!r || !r.ok) throw new Error((r && r.error) || "Could not load");
-    DATA = r.items || []; render();
-  }).catch(function(e){ var m = String(e && e.message || e); if(/passcode/i.test(m) && tier === "client") return KH.locked(m); $("list").innerHTML = '<div class="note warn">' + esc(m) + '</div>'; });
+    DATA = r.items || []; render(); var at = new Date().toISOString(); stamp(at, false);
+    try { localStorage.setItem(ckey(), JSON.stringify({ at:at, items:DATA })); } catch(e){}
+  }).catch(function(e){ var m = String(e && e.message || e); if(/passcode/i.test(m) && tier === "client") return KH.locked(m); if(!cached) $("list").innerHTML = '<div class="note warn">' + esc(m) + '</div>'; else stamp(cached.at, true, m); });
 }
+function stamp(at, stale, err){ var el = $("stamp"); if(!el){ el = document.createElement("div"); el.id = "stamp"; el.style.cssText = "font-size:11px;color:var(--grey);margin:-8px 0 10px"; $("stats").parentNode.insertBefore(el, $("stats")); } el.textContent = (stale ? "Showing what loaded " + KH.fmtDate(at) + (err ? ", could not refresh: " + err : ", refreshing...") : "Updated " + KH.fmtDate(at)); }
 function hasIssue(x){ return x.type === "report" ? !!x.emergency : (Number(x.no) > 0 || Number(x.late) > 0); }
 function render(){
   var items = DATA.filter(function(x){ return (!F.type || x.type === F.type) && (!F.issues || hasIssue(x)); });
