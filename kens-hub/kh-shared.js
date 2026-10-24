@@ -14,7 +14,7 @@
    photo shrink. No fetch on load. */
 (function(){
   "use strict";
-  var WEBHOOK = "__KH_WEBHOOK__";
+  var WEBHOOK = "https://script.google.com/macros/s/AKfycbwnT_Aox2seeZJ6SMaT5fVVNGMCmlsns1cbEfYze8QxVNiagAtSf01BXrQtJrFxFerfsA/exec";
   var KEY = "cwKensPass";
   var TEAMKEY = "cwOpsHubPass";
   var STAMP = "cwKensSince";
