@@ -9,14 +9,13 @@
      client  (script property KH_PASSCODE)      Ken's Foods staff and the porters
      manager (script property KH_MGR_PASSCODE)  the porter vendor's site manager
      team    (script property KH_TEAM_PASSCODE) City Wide staff; the same team passcode as every hub,
-                                                read from the device's cw-auth.js unlock, never typed here
+                                                typed on review.html each browser session (never the device Ops Hub unlock)
    Everything a page needs to paint is in this file: areas, rounds, shifts, the gate, post helper,
    photo shrink. No fetch on load. */
 (function(){
   "use strict";
   var WEBHOOK = "https://script.google.com/macros/s/AKfycbwnT_Aox2seeZJ6SMaT5fVVNGMCmlsns1cbEfYze8QxVNiagAtSf01BXrQtJrFxFerfsA/exec";
   var KEY = "cwKensPass";
-  var TEAMKEY = "cwOpsHubPass";
   var STAMP = "cwKensSince";
   var MAXAGE = 90 * 24 * 60 * 60 * 1000;
   var HUB = "https://citywidelv.github.io/kens-hub/";
@@ -180,8 +179,47 @@
   }
   function setPass(p){ ls(function(){ localStorage.setItem(KEY, p); }); touch(); }
   function clearPass(){ ls(function(){ localStorage.removeItem(KEY); localStorage.removeItem(STAMP); }); }
-  function getTeam(){ return ls(function(){ return localStorage.getItem(TEAMKEY); }) || ""; }
+  /* ---------- City Wide team gate (Nov 2 2026) ----------
+     The City Wide side of this hub NEVER inherits the device's Ops Hub unlock (cwOpsHubPass). A phone or plant
+     tablet that a City Wide person once unlocked must not open review.html or the City Wide history view for
+     whoever holds it next. The team passcode is typed here, checked by the server (kh_config is team-only),
+     and kept in sessionStorage for this tab only. Nothing paints until the server says yes, and a page restored
+     by the Back button re-runs the check. */
+  var TEAMSESSION = "cwKensTeam";
+  function getTeam(){ try { return sessionStorage.getItem(TEAMSESSION) || ""; } catch(e){ return ""; } }
   function isTeam(){ return !!getTeam(); }
+  function teamSet(p){ try { sessionStorage.setItem(TEAMSESSION, p); } catch(e){} }
+  function teamClear(){
+    try { sessionStorage.removeItem(TEAMSESSION); } catch(e){}
+    ls(function(){ for(var i = localStorage.length - 1; i >= 0; i--){ var k = localStorage.key(i); if(k && k.indexOf("cwKhHist_team_") === 0) localStorage.removeItem(k); } });
+  }
+  function teamValidate(pass){
+    return post({ kind:"kh_config", passcode: pass })
+      .then(function(r){ return { ok: !!(r && r.ok === true), r:r }; })
+      .catch(function(){ return { ok:null }; });
+  }
+  function teamGate(opts){
+    var input = $(opts.input), button = $(opts.button), err = $(opts.err), gate = $(opts.gate), app = $(opts.app);
+    function say(m){ if(err) err.textContent = m || ""; }
+    function shut(){ if(app) app.classList.add("hidden"); if(gate) gate.classList.remove("hidden"); }
+    function open(pass, r){ if(gate) gate.classList.add("hidden"); if(app) app.classList.remove("hidden"); if(opts.onUnlock) opts.onUnlock(pass, r); }
+    function check(v){
+      button.disabled = true; button.textContent = "Checking...";
+      teamValidate(v).then(function(res){
+        button.disabled = false; button.textContent = "Enter";
+        if(res.ok === true){ teamSet(v); open(v, res.r); }
+        else if(res.ok === null){ shut(); say("Could not reach the server. Check your connection and try again."); }
+        else { teamClear(); shut(); say("That is not the City Wide team passcode."); if(input){ input.value = ""; input.focus(); } }
+      });
+    }
+    button.addEventListener("click", function(e){ e.preventDefault(); var v = String(input.value || "").trim(); if(!v){ say("Enter the City Wide team passcode."); return; } check(v); });
+    input.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); button.click(); } });
+    window.addEventListener("pageshow", function(e){ if(e.persisted){ shut(); location.reload(); } });
+    shut();
+    var cached = getTeam();
+    if(cached){ say(""); check(cached); } else input.focus();
+  }
+  function teamLock(){ teamClear(); location.replace(HUB); }
 
   function post(body){
     return fetch(WEBHOOK, { method:"POST", headers:{ "Content-Type":"text/plain" }, body: JSON.stringify(body) })
@@ -373,7 +411,7 @@
   window.KH = { propertyOptions:propertyOptions, porterProp:porterProp, byName:byName, WEBHOOK:WEBHOOK, HUB:HUB, LOGO:LOGO, KLOGO:KLOGO, SITE:SITE, SHIFTS:SHIFTS, AREAS:AREAS,
     shiftFor:shiftFor, shiftNow:shiftNow, areaByKey:areaByKey, areaOptions:areaOptions,
     esc:esc, uid:uid, $:$, params:params,
-    getPass:getPass, setPass:setPass, clearPass:clearPass, getTeam:getTeam, isTeam:isTeam, post:post, api:api, teamApi:teamApi, validate:validate, hubGate:hubGate, require:require, locked:locked,
+    getPass:getPass, setPass:setPass, clearPass:clearPass, getTeam:getTeam, isTeam:isTeam, teamGate:teamGate, teamLock:teamLock, teamClear:teamClear, post:post, api:api, teamApi:teamApi, validate:validate, hubGate:hubGate, require:require, locked:locked,
     mgrGate:mgrGate, mgrRequire:mgrRequire, mgrApi:mgrApi, mgrLocked:mgrLocked, mgrGetPass:mgrGetPass, mgrClearPass:mgrClearPass, MGRHUB:MGRHUB,
     shrink:shrink, thumb:thumb, uploadPhotos:uploadPhotos, photoPick:photoPick, saveDraft:saveDraft, loadDraft:loadDraft, clearDraft:clearDraft,
     photoStore:photoStore, photoLoad:photoLoad, photoDrop:photoDrop, fmtDate:fmtDate, fmtTime:fmtTime, weekday:weekday, niceDay:niceDay, today:today, porterName:porterName };

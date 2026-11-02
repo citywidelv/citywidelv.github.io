@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>City Wide Review | Kens Hub</title>
-<!-- build 2026-10-24: the City Wide side of the Kens Hub. Team passcode (CWAuth.require, Ops Hub gate); the backend
+<!-- build 2026-10-24, gate rebuilt 2026-11-02: the City Wide side of the Kens Hub. Team passcode typed on this page every browser
+     session (KH.teamGate, sessionStorage only), never the device Ops Hub unlock; the backend
      checks it against KH_TEAM_PASSCODE on the CW Kens Hub Backend. No approval queue: this page is the digest
      settings (Config tab), send-now buttons, the links into the history, and notes / status on one item (?id=). -->
 <link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
@@ -27,11 +28,27 @@
 <link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
 </head>
 <body>
+
+<div class="gate" id="gate">
+<div class="lockcard">
+<div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
+<h3>City Wide staff only</h3>
+<div class="for">Kens Hub</div>
+<p>Enter the City Wide team passcode. It is asked again each time the browser is reopened.</p>
+<input type="password" id="pc" placeholder="Team passcode" autocomplete="off">
+<button class="btn" id="enter">Enter</button>
+<div class="err" id="err"></div>
+<div class="hint"><a href="index.html">&larr; Back to the Kens Hub</a></div>
+</div>
+</div>
+
+<div id="app" class="hidden">
 <header class="top">
 <div class="bar">
 <a class="back" href="index.html">&larr; Kens Hub</a>
 <div class="brands"><img class="cw" src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"><span class="div"></span><img class="ovl" src="kens-logo.jpg" alt="Ken's Foods"></div>
 <div class="tag"><b>City Wide Review</b>Kens Hub</div>
+<button type="button" class="btn ghost sm" id="lock" style="width:auto;margin-left:auto">Lock</button>
 </div>
 </header>
 
@@ -71,14 +88,17 @@
 </main>
 
 <footer class="foot"><span class="line">City Wide Facility Solutions, Las Vegas</span></footer>
+</div>
 
-<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script src="kh-shared.js"></script>
 <script>
 (function(){
 var $ = KH.$, esc = KH.esc, P = KH.params();
-var PASS = CWAuth.require({ hub:"ops" }); if(!PASS) return;
-var api = function(kind, body){ body = body || {}; body.kind = kind; body.passcode = PASS; return KH.post(body).then(function(r){ if(r && r.ok === false && /passcode/i.test(String(r.error || ""))){ CWAuth.locked("ops", r.error); throw new Error(r.error); } return r; }); };
+var PASS = "";
+$("lock").addEventListener("click", function(){ KH.teamLock(); });
+KH.teamGate({ input:"pc", button:"enter", err:"err", gate:"gate", app:"app", onUnlock:function(pass, first){ PASS = pass; start(first); } });
+var api = function(kind, body){ body = body || {}; body.kind = kind; body.passcode = PASS; return KH.post(body).then(function(r){ if(r && r.ok === false && /passcode/i.test(String(r.error || ""))){ KH.teamLock(); throw new Error(r.error); } return r; }); };
+function start(first){
 try { $("by").value = localStorage.getItem("cwOpsName") || ""; } catch(e){}
 var HELP = { client_to:"Ken's Foods, daily 5 PM", vendor_to:"Porter vendor, daily 5 PM (BLPL Cleaning). Never a Ken's address here.", cw_cc:"City Wide, copied on both daily digests", weekly_to:"City Wide, Monday 7 AM weekly", report_notify:"Immediate email when a message, emergency or supply request lands", emergency_notify:"Extra addresses on an EMERGENCY", sender_name:"Display name on every email", reply_to:"Reply-to on every email", site_address:"Plant address shown on digests", last_daily_at:"Set by the digest; clear it to resend from 24 hours ago", digest_live:"TRUE sends to the client and vendor lists. FALSE = test mode, cw_cc only" };
 function renderCfg(cfg){
@@ -90,7 +110,7 @@ function renderCfg(cfg){
   $("cfg").querySelectorAll("[data-save]").forEach(function(b){ b.addEventListener("click", function(){ var k = b.getAttribute("data-save"); b.disabled = true; api("kh_config_set", { key:k, value:$("cfg").querySelector('[data-k="' + k + '"]').value.trim() }).then(function(r){ b.disabled = false; b.textContent = r && r.ok ? "Saved" : "Failed"; setTimeout(function(){ b.textContent = "Save"; }, 1500); }); }); });
   $("cfg").querySelectorAll("[data-live]").forEach(function(b){ b.addEventListener("click", function(){ var v = b.getAttribute("data-live"); if(v === "TRUE" && !confirm("This starts emailing Ken's Foods and the vendor at 5 PM every day. Are the client_to and vendor_to lists right?")) return; api("kh_config_set", { key:"digest_live", value:v }).then(function(r){ if(r && r.ok) renderCfg(r.config); }); }); });
 }
-api("kh_config").then(function(r){ if(!r || !r.ok) throw new Error(r && r.error); renderCfg(r.config); if(r.sheet_url) $("sheetLink").href = r.sheet_url; }).catch(function(e){ $("cfg").innerHTML = '<div class="note warn">' + esc(String(e && e.message || e)) + '</div>'; });
+if(first && first.ok){ renderCfg(first.config); if(first.sheet_url) $("sheetLink").href = first.sheet_url; }
 function run(kind, btn){ btn.disabled = true; var t = btn.textContent; btn.textContent = "Sending..."; $("out").classList.remove("hidden"); $("out").textContent = "Working..."; api(kind, { by:$("by").value.trim() }).then(function(r){ $("out").textContent = JSON.stringify(r, null, 1); }).catch(function(e){ $("out").textContent = String(e && e.message || e); }).then(function(){ btn.disabled = false; btn.textContent = t; }); }
 $("daily").addEventListener("click", function(){ run("kh_digest_now", $("daily")); });
 $("weekly").addEventListener("click", function(){ run("kh_weekly_now", $("weekly")); });
@@ -103,6 +123,7 @@ if(P.id){
     if(r.src === "jotform"){ $("save").disabled = true; $("ierr").textContent = "Jotform rows are read-only here."; }
   }).catch(function(e){ $("ierr").textContent = String(e && e.message || e); });
   $("save").addEventListener("click", function(){ $("save").disabled = true; try { localStorage.setItem("cwOpsName", $("by").value.trim()); } catch(e){} api("kh_update", { id:P.id, status:$("status").value, cw_notes:$("cwn").value, by:$("by").value.trim() }).then(function(r){ $("save").disabled = false; $("ierr").textContent = r && r.ok ? "Saved." : (r && r.error) || "Failed"; }); });
+}
 }
 })();
 </script>

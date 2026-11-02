@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Report History | Kens Hub</title>
 <!-- build 2026-10-24: the report history, one page for every tier. The page sends whichever passcode the device holds
-     (team unlock from cw-auth.js, then the manager passcode, then the client passcode) and the backend scopes the
+     (the City Wide team passcode typed on review.html this browser session, then the manager passcode, then the client passcode) and the backend scopes the
      rows to that role (kind kh_history). ?who=client forces the client view on a City Wide device. Hub rows and the
      three Jotforms' rows are merged, grouped by day and shift. Tap a row for the task-by-task detail (kh_get). -->
 <link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
@@ -77,7 +77,7 @@
 var $ = KH.$, esc = KH.esc, P = KH.params();
 /* Which passcode does this device hold? Highest tier wins unless ?who=client. */
 var pass = "", tier = "client";
-if(P.who !== "client" && KH.getTeam()){ pass = KH.getTeam(); tier = "team"; }
+if(P.who !== "client" && KH.isTeam()){ pass = KH.getTeam(); tier = "team"; }
 else if(P.who !== "client" && KH.mgrGetPass()){ pass = KH.mgrGetPass(); tier = "manager"; }
 else { pass = KH.require(); if(!pass) return; }
 if(tier === "manager") $("back").href = "manager.html"; else if(tier === "team") $("back").href = "review.html"; else if(P.from === "porter") $("back").href = "porter.html"; else $("back").href = "client.html";
@@ -86,6 +86,7 @@ var api = function(kind, body){ body = body || {}; body.kind = kind; body.passco
 var F = { days:7, type:"", issues:false }, DATA = [];
 /* Paint from the last result on this device at once, then refresh from the server in the background. */
 function ckey(){ return "cwKhHist_" + tier + "_" + F.days; }
+if(tier === "team") window.addEventListener("pageshow", function(e){ if(e.persisted && !KH.isTeam()) location.reload(); });
 function load(){
   var cached = null; try { cached = JSON.parse(localStorage.getItem(ckey()) || "null"); } catch(e){}
   if(cached && cached.items){ DATA = cached.items; render(); $("lead").setAttribute("data-stale", "1"); stamp(cached.at, true); }
