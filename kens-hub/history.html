@@ -8,11 +8,22 @@
 <!-- build 2026-10-24: the report history, one page for every tier. The page sends whichever passcode the device holds
      (the City Wide team passcode typed on review.html this browser session, then the manager passcode, then the client passcode) and the backend scopes the
      rows to that role (kind kh_history). ?who=client forces the client view on a City Wide device. Hub rows and the
-     three Jotforms' rows are merged, grouped by day and shift. Tap a row for the task-by-task detail (kh_get). -->
+     three Jotforms' rows are merged, grouped by day and shift. Tap a row for the task-by-task detail (kh_get).
+     build 2026-11-02: search by area and date range at the top (kh_history from / to / area), every tier. -->
 <link rel="icon" type="image/png" sizes="32x32" href="https://citywidelv.github.io/cw-ops-desk/favicon-32x32.png">
 <link rel="stylesheet" href="kh.css">
 <style>
 .brands img.ovl{height:30px}
+.search{display:grid;grid-template-columns:1.6fr 1fr 1fr auto;gap:8px 10px;align-items:end;background:#fff;border:1px solid var(--ov-border);border-radius:12px;padding:12px;margin:0 0 10px}
+.search .f label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--grey);margin:0 0 4px}
+.search select,.search input[type=date]{min-height:44px;padding:8px 10px;font-size:15px}
+.search .go .btn{min-height:44px;padding:0 18px;white-space:nowrap}
+.search .quick{grid-column:1 / -1;display:flex;gap:6px;flex-wrap:wrap}
+.search .quick .chip{min-height:34px;padding:5px 11px;font-size:12px}
+.found{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--black);margin:0 0 10px}
+.found b{color:var(--ov-olive)}
+.found .clr{font-size:12px;color:var(--grey);text-decoration:underline;cursor:pointer;background:none;border:0;padding:0;font-family:inherit}
+@media(max-width:640px){.search{grid-template-columns:1fr 1fr}.search .f:first-child{grid-column:1 / -1}.search .go{grid-column:1 / -1}.search .go label{display:none}.search .go .btn{width:100%}}
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
 .filters .chip{min-height:38px;padding:7px 12px;font-size:13px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 16px}
@@ -57,12 +68,19 @@
 
 <main class="wrap">
 <h1>Report history</h1>
-<div class="lead" id="lead">Every area round and end-of-shift report at Ken's Foods Las Vegas, newest first. Tap one for the detail.</div>
+<div class="lead" id="lead">Every area round and end-of-shift report at Ken's Foods Las Vegas, newest first. Pick an area and a date range to see when it was cleaned. Tap a row for the task-by-task detail.</div>
 
+<div class="search" id="search">
+<div class="f"><label for="area">Area</label><select id="area"><option value="">All areas</option></select></div>
+<div class="f"><label for="from">From</label><input type="date" id="from"></div>
+<div class="f"><label for="to">To</label><input type="date" id="to"></div>
+<div class="f go"><label>&nbsp;</label><button type="button" class="btn dark" id="go">Search</button></div>
+<div class="quick">
+<button type="button" class="chip on" data-days="7">Last 7 days</button><button type="button" class="chip" data-days="14">14 days</button><button type="button" class="chip" data-days="30">30 days</button><button type="button" class="chip" data-days="90">90 days</button>
+</div>
+</div>
 <div class="filters">
-<button type="button" class="chip on" data-days="7">Last 7 days</button><button type="button" class="chip" data-days="14">14 days</button><button type="button" class="chip" data-days="30">30 days</button>
-<span style="flex:1"></span>
-<button type="button" class="chip" data-type="">All</button><button type="button" class="chip" data-type="area">Area rounds</button><button type="button" class="chip" data-type="shift">End of shift</button><button type="button" class="chip" data-type="report">Messages</button>
+<button type="button" class="chip on" data-type="">All</button><button type="button" class="chip" data-type="area">Area rounds</button><button type="button" class="chip" data-type="shift">End of shift</button><button type="button" class="chip" data-type="report">Messages</button>
 <button type="button" class="chip" id="issues">Issues only</button>
 </div>
 <div class="stats" id="stats"></div>
@@ -83,19 +101,44 @@ else { pass = KH.require(); if(!pass) return; }
 if(tier === "manager") $("back").href = "manager.html"; else if(tier === "team") $("back").href = "review.html"; else if(P.from === "porter") $("back").href = "porter.html"; else $("back").href = "client.html";
 var api = function(kind, body){ body = body || {}; body.kind = kind; body.passcode = pass; return KH.post(body); };
 
-var F = { days:7, type:"", issues:false }, DATA = [];
-/* Paint from the last result on this device at once, then refresh from the server in the background. */
+/* Search (Nov 2 2026, asked by Jake's team): pick an area and a date range and pull every round logged there,
+   for the client and for City Wide. The backend does the filtering (kh_history from / to / area) so an audit
+   question like "when were the restrooms last cleaned" is one request. Quick chips set the range; Search runs it. */
+var F = { days:7, from:"", to:"", area:"", type:"", issues:false }, DATA = [], LOADED_AREAS = {};
+var RESTROOMS = "__restrooms";
+function ymd(d){ return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function daysAgo(n){ var d = new Date(); d.setDate(d.getDate() - n); return ymd(d); }
+function areaKey(s){ return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+function fillAreas(){
+  var sel = $("area"), cur = sel.value, keys = {}, h = '<option value="">All areas</option><option value="' + RESTROOMS + '">All restrooms and bathrooms</option>';
+  KH.AREAS.forEach(function(a){ keys[areaKey(a.name)] = 1; h += '<option value="' + esc(a.name) + '">' + esc(a.name) + '</option>'; });
+  var extra = Object.keys(LOADED_AREAS).filter(function(k){ return !keys[k]; }).map(function(k){ return LOADED_AREAS[k]; }).sort();
+  if(extra.length){ h += '<optgroup label="Also seen on the forms">'; extra.forEach(function(n){ h += '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }); h += '</optgroup>'; }
+  sel.innerHTML = h; sel.value = cur; if(sel.value !== cur) sel.value = "";
+}
+/* Paint from the last result on this device at once (default window only), then refresh from the server. */
 function ckey(){ return "cwKhHist_" + tier + "_" + F.days; }
+function isDefault(){ return !F.area && !F.from && !F.to; }
 if(tier === "team") window.addEventListener("pageshow", function(e){ if(e.persisted && !KH.isTeam()) location.reload(); });
+function query(){
+  var q = {};
+  if(F.from || F.to){ q.from = F.from || daysAgo(365); q.to = F.to || KH.today(); }
+  else q.days = F.days;
+  if(F.area) q.area = F.area;
+  return q;
+}
 function load(){
-  var cached = null; try { cached = JSON.parse(localStorage.getItem(ckey()) || "null"); } catch(e){}
+  var cached = null; if(isDefault()){ try { cached = JSON.parse(localStorage.getItem(ckey()) || "null"); } catch(e){} }
   if(cached && cached.items){ DATA = cached.items; render(); $("lead").setAttribute("data-stale", "1"); stamp(cached.at, true); }
   else $("list").innerHTML = '<div class="empty">Loading...</div>';
-  api("kh_history", { days:F.days }).then(function(r){
+  $("go").disabled = true; $("go").textContent = "Searching...";
+  api("kh_history", query()).then(function(r){
     if(!r || !r.ok) throw new Error((r && r.error) || "Could not load");
-    DATA = r.items || []; render(); var at = new Date().toISOString(); stamp(at, false);
-    try { localStorage.setItem(ckey(), JSON.stringify({ at:at, items:DATA })); } catch(e){}
-  }).catch(function(e){ var m = String(e && e.message || e); if(/passcode/i.test(m) && tier === "client") return KH.locked(m); if(!cached) $("list").innerHTML = '<div class="note warn">' + esc(m) + '</div>'; else stamp(cached.at, true, m); });
+    DATA = r.items || []; DATA.forEach(function(x){ if(x.area && x.type !== "report") LOADED_AREAS[areaKey(x.area)] = x.area; }); fillAreas();
+    render(); var at = new Date().toISOString(); stamp(at, false);
+    if(isDefault()){ try { localStorage.setItem(ckey(), JSON.stringify({ at:at, items:DATA })); } catch(e){} }
+  }).catch(function(e){ var m = String(e && e.message || e); if(/passcode/i.test(m) && tier === "client") return KH.locked(m); if(!cached) $("list").innerHTML = '<div class="note warn">' + esc(m) + '</div>'; else stamp(cached.at, true, m); })
+  .then(function(){ $("go").disabled = false; $("go").textContent = "Search"; });
 }
 function stamp(at, stale, err){ var el = $("stamp"); if(!el){ el = document.createElement("div"); el.id = "stamp"; el.style.cssText = "font-size:11px;color:var(--grey);margin:-8px 0 10px"; $("stats").parentNode.insertBefore(el, $("stats")); } el.textContent = (stale ? "Showing what loaded " + KH.fmtDate(at) + (err ? ", could not refresh: " + err : ", refreshing...") : "Updated " + KH.fmtDate(at)); }
 function hasIssue(x){ return x.type === "report" ? !!x.emergency : (Number(x.no) > 0 || Number(x.late) > 0); }
@@ -104,7 +147,8 @@ function render(){
   var areas = items.filter(function(x){ return x.type === "area"; }), shifts = items.filter(function(x){ return x.type === "shift"; });
   var yes = 0, tot = 0; areas.concat(shifts).forEach(function(x){ yes += Number(x.yes) || 0; tot += Number(x.total) || 0; });
   $("stats").innerHTML = [["Area rounds", areas.length], ["Shift reports", shifts.length], ["Tasks done", tot ? yes + " / " + tot : "0"], ["With an issue", items.filter(hasIssue).length]].map(function(s){ return '<div class="stat"><b>' + esc(s[1]) + '</b><span>' + esc(s[0]) + '</span></div>'; }).join("");
-  if(!items.length){ $("list").innerHTML = '<div class="empty">Nothing in this window.</div>'; return; }
+  found(items, areas);
+  if(!items.length){ $("list").innerHTML = '<div class="empty">Nothing logged for this search.</div>'; return; }
   var days = {}, order = [];
   items.forEach(function(x){ var d = x.day || "Undated"; if(!days[d]){ days[d] = []; order.push(d); } days[d].push(x); });
   var h = "";
@@ -120,6 +164,17 @@ function render(){
   });
   $("list").innerHTML = h;
   $("list").querySelectorAll("[data-id]").forEach(function(el){ el.addEventListener("click", function(){ openItem(el.getAttribute("data-id")); }); });
+}
+/* One line that answers the audit question: what was searched, how many rounds, and when the last one was. */
+function found(items, areas){
+  var el = $("found"); if(!el){ el = document.createElement("div"); el.id = "found"; el.className = "found"; $("stats").parentNode.insertBefore(el, $("stats")); }
+  if(isDefault()){ el.innerHTML = ""; el.style.display = "none"; return; }
+  var what = F.area === RESTROOMS ? "all restrooms and bathrooms" : F.area ? F.area : "all areas";
+  var span = F.from || F.to ? KH.niceDay(F.from || daysAgo(365)) + " to " + KH.niceDay(F.to || KH.today()) : "the last " + F.days + " days";
+  var last = areas.length ? areas[0] : null;
+  el.style.display = "";
+  el.innerHTML = '<span><b>' + areas.length + '</b> area round' + (areas.length === 1 ? '' : 's') + ' in ' + esc(what) + ', ' + esc(span) + (last ? '. Most recent: ' + esc(KH.fmtDate(last.created_at)) + (last.area ? ', ' + esc(last.area) : '') + (last.porter ? ' by ' + esc(last.porter) : '') : '') + '.</span><button type="button" class="clr" id="clear">Clear search</button>';
+  $("clear").addEventListener("click", function(){ F.area = ""; F.from = ""; F.to = ""; $("area").value = ""; $("from").value = ""; $("to").value = ""; setDays(7); });
 }
 function rowHtml(x){
   var cls = x.type === "report" ? (x.emergency ? "em" : "report") : (hasIssue(x) ? "warn" : "");
@@ -162,10 +217,21 @@ function openItem(id){
     pids.forEach(function(pid){ api("kh_photo_get", { fileId: files[pid] }).then(function(pr){ if(pr && pr.ok){ var img = document.createElement("img"); img.src = pr.data; $("phs").appendChild(img); } }); });
   }).catch(function(e){ m.querySelector(".box").innerHTML = '<div class="note warn">' + esc(String(e && e.message || e)) + '</div><div class="btnrow"><button type="button" class="btn ghost" id="close">Close</button></div>'; $("close").addEventListener("click", function(){ m.remove(); }); });
 }
-document.querySelectorAll("[data-days]").forEach(function(b){ b.addEventListener("click", function(){ document.querySelectorAll("[data-days]").forEach(function(x){ x.classList.remove("on"); }); b.classList.add("on"); F.days = Number(b.getAttribute("data-days")); load(); }); });
+function setDays(n){ document.querySelectorAll("[data-days]").forEach(function(x){ x.classList.toggle("on", Number(x.getAttribute("data-days")) === n); }); F.days = n; F.from = ""; F.to = ""; $("from").value = ""; $("to").value = ""; load(); }
+document.querySelectorAll("[data-days]").forEach(function(b){ b.addEventListener("click", function(){ F.area = $("area").value; setDays(Number(b.getAttribute("data-days"))); }); });
+function runSearch(){
+  F.area = $("area").value; F.from = $("from").value; F.to = $("to").value;
+  if(F.from && F.to && F.from > F.to){ var t = F.from; F.from = F.to; F.to = t; $("from").value = F.from; $("to").value = F.to; }
+  document.querySelectorAll("[data-days]").forEach(function(x){ x.classList.toggle("on", !F.from && !F.to && Number(x.getAttribute("data-days")) === F.days); });
+  load();
+}
+$("go").addEventListener("click", runSearch);
+$("area").addEventListener("change", runSearch);
+$("to").setAttribute("max", KH.today()); $("from").setAttribute("max", KH.today());
+fillAreas();
 document.querySelectorAll("[data-type]").forEach(function(b){ b.addEventListener("click", function(){ document.querySelectorAll("[data-type]").forEach(function(x){ x.classList.remove("on"); }); b.classList.add("on"); F.type = b.getAttribute("data-type"); render(); }); });
 $("issues").addEventListener("click", function(){ F.issues = !F.issues; $("issues").classList.toggle("on", F.issues); render(); });
-if(tier !== "client") $("lead").textContent = (tier === "team" ? "City Wide view: " : "Manager view: ") + "everything logged at the plant, hub and Jotform, newest first.";
+if(tier !== "client") $("lead").textContent = (tier === "team" ? "City Wide view: " : "Manager view: ") + "everything logged at the plant, hub and Jotform, newest first. Pick an area and a date range to see when it was cleaned.";
 load();
 })();
 </script>

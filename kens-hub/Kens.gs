@@ -15,7 +15,9 @@
  *   kh_submit                     save an area checklist (kha_), an end-of-shift report (khs_) or a report / message (khr_)
  *   kh_photo_put                  one JPEG for a submission
  *   kh_feed                       porter view of Ken's Foods messages (anonymised: no name, phone, email)
- *   kh_history                    the report history, scoped by role (client | manager | team): hub rows + Jotform rows
+ *   kh_history                    the report history, scoped by role (client | manager | team): hub rows + Jotform rows;
+ *                                 Nov 2 2026: from / to / area narrow it on the server (history.html search)
+ *   kh_feed_get, kh_feed_photo    Nov 2 2026: one Ken's message for the porter feed detail, and its photos
  *   kh_get                        one item in full (client: own hub items and Jotform rows; manager / team: everything)
  *   kh_photo_get                  one photo back as base64 (manager / team, plus client for report photos)
  *   kh_mgr_request                site manager supplies request (saved as a report, emails ops)
@@ -96,7 +98,7 @@ function khDispatch(d) {
     }
     var role = khRole_(d);
     if (!role) return khOut_({ ok: false, error: 'Bad passcode' });
-    var client = ['kh_submit', 'kh_photo_put', 'kh_feed', 'kh_history', 'kh_get', 'kh_photo_get'];
+    var client = ['kh_submit', 'kh_photo_put', 'kh_feed', 'kh_feed_get', 'kh_feed_photo', 'kh_history', 'kh_get', 'kh_photo_get'];
     var manager = ['kh_mgr_request'];
     var team = ['kh_update', 'kh_config', 'kh_config_set', 'kh_digest_now', 'kh_weekly_now', 'kh_warm'];
     if (manager.indexOf(kind) >= 0 && role === 'client') return khOut_({ ok: false, error: 'Bad passcode' });
@@ -109,6 +111,8 @@ function khDispatch(d) {
     if (kind === 'kh_history') return khHistory_(d);
     if (kind === 'kh_get') return khGet_(d);
     if (kind === 'kh_photo_get') return khPhotoGet_(d);
+    if (kind === 'kh_feed_get') return khFeedGet_(d);
+    if (kind === 'kh_feed_photo') return khPhotoGet_(d);
     if (kind === 'kh_mgr_request') return khMgrRequest_(d);
     if (kind === 'kh_update') return khUpdate_(d);
     if (kind === 'kh_config') return khOut_({ ok: true, config: khConfig_(), sheet_url: khSS_().getUrl(), folder_url: khFolder_().getUrl() });
@@ -273,14 +277,44 @@ function khPhotoPut_(d) {
   var name = id + '_' + pid + '.jpg', folder = khFolderFor_(type);
   var ex = folder.getFilesByName(name); while (ex.hasNext()) ex.next().setTrashed(true);
   var file = folder.createFile(Utilities.newBlob(bytes, 'image/jpeg', name));
+  try { khPhotoNote_(type, id, pid, file.getId()); } catch (e2) {}
   return khOut_({ ok: true, pid: pid, fileId: file.getId() });
 }
-function khPhotoFiles_(type, id) {
-  var files = {};
+// Nov 2 2026: the photo's Drive file id is written onto the submission (doc.photo_files[pid]) the moment it lands.
+// Pages used to find photos with a Drive title search, and Drive's search index lags new files by minutes, so a
+// photo that had uploaded fine still showed "not uploaded" to whoever opened the report right after the porter.
+function khPhotoNote_(type, id, pid, fileId) {
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
-    var it = khFolderFor_(type).searchFiles("title contains '" + id + "_ph_' and trashed = false");
-    while (it.hasNext()) { var f = it.next(); var mm = f.getName().match(/_(ph_[\w-]+)\.jpg$/); if (mm) files[mm[1]] = f.getId(); }
-  } catch (e) {}
+    var sh = khSheetFor_(type), headers = khHeadersFor_(type), r = khFindRow_(sh, id);
+    if (!r) return false;
+    var jf = String(sh.getRange(r, headers.indexOf('json_file') + 1).getValue() || '');
+    if (!jf) return false;
+    var f = DriveApp.getFileById(jf), doc = JSON.parse(f.getBlob().getDataAsString());
+    doc.photo_files = doc.photo_files || {};
+    doc.photo_files[pid] = fileId;
+    f.setContent(JSON.stringify(doc));
+    return true;
+  } finally { lock.releaseLock(); }
+}
+// pid -> file id. The ids noted on the submission come first (no index lag), then an exact-name lookup for any
+// pid the submission lists without an id, then the old title search for anything else.
+function khPhotoFiles_(type, id, doc) {
+  var files = {}, folder = null;
+  try { folder = khFolderFor_(type); } catch (e0) { folder = null; }
+  if (doc && doc.photo_files) Object.keys(doc.photo_files).forEach(function (pid) { if (/^ph_[\w-]{1,40}$/.test(pid) && doc.photo_files[pid]) files[pid] = String(doc.photo_files[pid]); });
+  if (folder && doc) {
+    (doc.photos || []).forEach(function (p) {
+      var pid = String(p && p.pid || ''); if (!pid || files[pid] || !/^ph_[\w-]{1,40}$/.test(pid)) return;
+      try { var ex = folder.getFilesByName(id + '_' + pid + '.jpg'); if (ex.hasNext()) files[pid] = ex.next().getId(); } catch (e1) {}
+    });
+  }
+  if (folder) {
+    try {
+      var it = folder.searchFiles("title contains '" + id + "_ph_' and trashed = false");
+      while (it.hasNext()) { var f = it.next(); var mm = f.getName().match(/_(ph_[\w-]+)\.jpg$/); if (mm && !files[mm[1]]) files[mm[1]] = f.getId(); }
+    } catch (e) {}
+  }
   return files;
 }
 // Reports that come from City Wide's own side (porter emergency / maintenance, manager supplies) never show on
@@ -299,16 +333,37 @@ function khFeed_(d) {
 
 // The report history. role client sees checklists, shift reports and Ken's own messages (no porter emergencies,
 // no manager supply requests, no City Wide notes). manager sees everything minus Ken's contact details. team sees all.
+// Nov 2 2026: from / to (yyyy-mm-dd, local days) and area (an area name, a QR key, or __restrooms for every
+// restroom, bathroom and locker room) narrow the list on the server, so "when were the restrooms last cleaned"
+// is one request from the history page. days is still honored when from / to are not sent.
 function khHistory_(d) {
-  var role = d._role, days = Math.min(120, Number(d.days) || 14), since = Date.now() - days * 86400000;
+  var role = d._role, from = khYmd_(d.from), to = khYmd_(d.to), days;
+  if (from) { days = Math.min(400, Math.max(1, Math.ceil((Date.now() - khLocalMidnight_(from)) / 86400000) + 1)); }
+  else days = Math.min(120, Number(d.days) || 14);
   var items = khAllItems_(days);
+  if (from || to) items = items.filter(function (x) { var day = x.day || x.service_date || khLocalDay_(x.created_at); return day && (!from || day >= from) && (!to || day <= to); });
+  var area = String(d.area || '').trim();
+  if (area) {
+    var want = khAreaMatch_(area);
+    items = items.filter(function (x) { return x.type !== 'shift' && want(x.area); });
+  }
   if (role === 'client') items = items.filter(function (x) { return x.type !== 'report' || !x.internal; });
   items.forEach(function (x) {
     if (role !== 'team') { delete x.cw_notes; }
     if (role !== 'team' && x.type === 'report') { delete x.phone; delete x.email; }
     if (role === 'client' && x.type === 'report') { delete x.submitter; }
   });
-  return khOut_({ ok: true, role: role, days: days, items: items, today: Utilities.formatDate(new Date(), KH_TZ, 'yyyy-MM-dd') });
+  return khOut_({ ok: true, role: role, days: days, from: from, to: to, area: area, items: items, today: Utilities.formatDate(new Date(), KH_TZ, 'yyyy-MM-dd') });
+}
+function khYmd_(v) { var m = String(v || '').match(/^(\d{4}-\d{2}-\d{2})/); return m ? m[1] : ''; }
+function khLocalMidnight_(ymd) { var m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/); var guess = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])); var z = Utilities.formatDate(guess, KH_TZ, 'Z'); var off = (z.charAt(0) === '-' ? -1 : 1) * (parseInt(z.slice(1, 3), 10) * 60 + parseInt(z.slice(3, 5), 10)); return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) - off * 60000; }
+// Builds a matcher for an area search. Compares the normalized name (and the QR key behind it), so the hub's
+// "Men's Restroom / Locker Room" and a Jotform row that says the same thing in another spelling both match.
+function khAreaMatch_(area) {
+  if (area === '__restrooms') return function (name) { return /restroom|bathroom|locker|baño|bano/i.test(String(name || '')); };
+  var norm = function (s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); };
+  var wantName = norm(khAreaName_(area)), wantRaw = norm(area);
+  return function (name) { var n = norm(name), nn = norm(khAreaName_(name)); return !!n && (n === wantName || n === wantRaw || nn === wantName || nn === wantRaw); };
 }
 // Hub rows + Jotform rows, one flat list, newest first. Cached a few minutes because the Jotform sheets are wide.
 function khAllItems_(days) {
@@ -501,7 +556,19 @@ function khGet_(d) {
   if (role !== 'team') { delete doc.cw_notes; delete index.cw_notes; }
   if (role !== 'team' && type === 'report') { delete doc.phone; delete doc.email; delete index.phone; delete index.email; }
   if (role === 'client' && type === 'report') { delete doc.submitter; delete index.submitter; }
-  return khOut_({ ok: true, type: type, src: 'hub', doc: doc, index: index, photo_files: khPhotoFiles_(type, id) });
+  return khOut_({ ok: true, type: type, src: 'hub', doc: doc, index: index, photo_files: khPhotoFiles_(type, id, doc) });
+}
+// Nov 2 2026: the porter feed's detail view (feed.html) asked for kh_feed_get and kh_feed_photo, which the backend
+// never had, so tapping an item on the feed failed. A Ken's message, read as the client would see it, minus who sent it.
+function khFeedGet_(d) {
+  var id = String(d.id || '');
+  if (khTypeOf_(id) !== 'report' && !/^jfr_/.test(id)) return khOut_({ ok: false, error: 'Not found' });
+  d._role = 'client';
+  var r = JSON.parse(khGet_(d).getContent());
+  if (!r.ok) return khOut_(r);
+  if (r.doc) { delete r.doc.submitter; delete r.doc.phone; delete r.doc.email; delete r.doc.cw_notes; }
+  if (r.index) { delete r.index.submitter; delete r.index.phone; delete r.index.email; delete r.index.cw_notes; }
+  return khOut_(r);
 }
 function khPhotoGet_(d) {
   var fileId = String(d.fileId || '');
