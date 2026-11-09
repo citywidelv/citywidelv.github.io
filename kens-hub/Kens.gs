@@ -24,6 +24,7 @@
  *   kh_update                     team: status / notes on an item
  *   kh_config, kh_config_set      team: the Config tab
  *   kh_digest_now                 team: run the daily digest right now (same logic as the 5 PM trigger)
+ *   kh_digest_dry                 team: who the daily would go to right now, nothing sent (Nov 9 2026)
  *   kh_weekly_now                 team: run the weekly digest right now
  *
  * Storage self-provisions on first use: spreadsheet "CW Kens Hub" (tabs Checklists, Reports, Config) and Drive
@@ -37,8 +38,11 @@
  * Digests (time triggers, khInstallTriggers once from the editor):
  *   khDigestDaily   5:00 PM Pacific every day. Everything submitted since the last daily digest. Two separate
  *                   emails: one to the client list (Config!client_to), one to the vendor list (Config!vendor_to),
- *                   City Wide (Config!cw_cc) copied on both. The vendor copy never carries Ken's contact details.
- *                   Both link to the client side of the hub.
+ *                   City Wide copied on each from its own list (Nov 9 2026: Config!client_cc on the client copy,
+ *                   Config!vendor_cc on the vendor copy; cw_cc is only the fallback when those keys are missing).
+ *                   A list left blank while live does not skip the copy: it goes to that copy's City Wide list only,
+ *                   tagged so nobody thinks Ken's Foods or the vendor got it. The vendor copy never carries Ken's
+ *                   contact details. Both link to the client side of the hub. kh_digest_dry shows who would get what.
  *   khDigestWeekly  Monday 7:00 AM Pacific. The past 7 days, to City Wide (Config!weekly_to).
  * No approval step anywhere: submissions aggregate and ride the next digest.
  */
@@ -58,9 +62,11 @@ var KH_CHECK_HEADERS = ['id', 'created_at', 'service_date', 'kind', 'shift', 'ar
 var KH_REPORT_HEADERS = ['id', 'created_at', 'submitter', 'role', 'phone', 'email', 'mode', 'category', 'area', 'urgency', 'summary', 'status', 'cw_notes', 'photos', 'json_file', 'updated_at'];
 var KH_CONFIG_HEADERS = ['key', 'value', 'what it does'];
 var KH_CONFIG_SEED = [
-  ['client_to', '', "Ken's Foods addresses that get the 5 PM daily digest. Comma separated. Blank = the client digest is skipped."],
-  ['vendor_to', '', 'Porter vendor addresses that get the 5 PM daily digest (BLPL Cleaning). Comma separated. Blank = skipped. Never put a client address here.'],
-  ['cw_cc', 'tjroberts@gocitywide.com', 'City Wide addresses copied on BOTH daily digests. Comma separated.'],
+  ['client_to', '', "Ken's Foods addresses that get the 5 PM daily client copy. Comma separated. Blank = the client copy goes to client_cc only."],
+  ['vendor_to', '', 'Porter vendor addresses that get the 5 PM daily vendor copy (BLPL Cleaning). Comma separated. Blank = vendor_cc only. Never put a client address here.'],
+  ['client_cc', 'tjroberts@gocitywide.com, jschmidt@gocitywide.com, rkrause@gocitywide.com', 'City Wide addresses copied on the client copy of the daily. Comma separated.'],
+  ['vendor_cc', 'jschmidt@gocitywide.com, rkrause@gocitywide.com', 'City Wide addresses copied on the vendor copy of the daily. Comma separated.'],
+  ['cw_cc', 'tjroberts@gocitywide.com', 'Retired Nov 9 2026. Only used if client_cc or vendor_cc is missing.'],
   ['weekly_to', 'tjroberts@gocitywide.com', 'City Wide addresses that get the Monday 7 AM weekly digest. Comma separated.'],
   ['report_notify', 'tjroberts@gocitywide.com', "Emailed the moment a Ken's Foods message, a porter emergency / maintenance request, or a manager supply request lands. Comma separated."],
   ['emergency_notify', '', 'Extra addresses on a porter EMERGENCY, on top of report_notify. Comma separated.'],
@@ -68,7 +74,7 @@ var KH_CONFIG_SEED = [
   ['reply_to', 'lvservicecall@gocitywide.com', 'Reply-to on every email from this hub. Replies come back to City Wide, never to the vendor or the client.'],
   ['site_address', '', "Ken's Foods Las Vegas plant address, shown on digests. Blank until City Wide fills it in."],
   ['last_daily_at', '', 'Set by the daily digest. The next daily digest covers everything after this instant.'],
-  ['digest_live', 'FALSE', 'TRUE sends the digests to the client and vendor lists. FALSE sends every digest to cw_cc only (test mode). Default FALSE on purpose.']
+  ['digest_live', 'FALSE', 'TRUE sends the daily to the client and vendor lists. FALSE sends each copy to its City Wide list only (test mode). Default FALSE on purpose.']
 ];
 
 // ------------------------------------------------------------------ router --
@@ -100,7 +106,7 @@ function khDispatch(d) {
     if (!role) return khOut_({ ok: false, error: 'Bad passcode' });
     var client = ['kh_submit', 'kh_photo_put', 'kh_feed', 'kh_feed_get', 'kh_feed_photo', 'kh_history', 'kh_get', 'kh_photo_get'];
     var manager = ['kh_mgr_request'];
-    var team = ['kh_update', 'kh_config', 'kh_config_set', 'kh_digest_now', 'kh_weekly_now', 'kh_warm'];
+    var team = ['kh_update', 'kh_config', 'kh_config_set', 'kh_digest_now', 'kh_digest_dry', 'kh_weekly_now', 'kh_warm'];
     if (manager.indexOf(kind) >= 0 && role === 'client') return khOut_({ ok: false, error: 'Bad passcode' });
     if (team.indexOf(kind) >= 0 && role !== 'team') return khOut_({ ok: false, error: 'Bad passcode' });
     if (client.indexOf(kind) < 0 && manager.indexOf(kind) < 0 && team.indexOf(kind) < 0) return khOut_({ ok: false, error: 'Unknown kh kind' });
@@ -118,6 +124,7 @@ function khDispatch(d) {
     if (kind === 'kh_config') return khOut_({ ok: true, config: khConfig_(), sheet_url: khSS_().getUrl(), folder_url: khFolder_().getUrl() });
     if (kind === 'kh_config_set') { khConfigSet_(String(d.key || ''), String(d.value || '')); return khOut_({ ok: true, config: khConfig_() }); }
     if (kind === 'kh_digest_now') return khOut_(khDigestDaily({ by: khStr_(d.by, 80) }));
+    if (kind === 'kh_digest_dry') return khOut_(khDigestDaily({ by: khStr_(d.by, 80), dry: true }));
     if (kind === 'kh_weekly_now') return khOut_(khDigestWeekly({ by: khStr_(d.by, 80) }));
     if (kind === 'kh_warm') { var inst = ''; if (d.install) { khInstallTriggers(); inst = 'triggers installed'; } return khOut_({ ok: true, rows: khWarmCache(), note: inst }); }
     return khOut_({ ok: false, error: 'Unknown kh kind' });
@@ -673,26 +680,31 @@ function khDigestDaily(opts) {
   var sinceT = Date.parse(sinceIso) || (Date.now() - 86400000);
   var items = khAllItems_(8).filter(function (x) { var t = Date.parse(x.created_at); return t && t > sinceT && t <= now.getTime(); });
   var span = khNice_(sinceIso) + ' to ' + khNice_(now.toISOString());
-  var live = /^true$/i.test(cfg.digest_live);
-  var cc = khEmails_(cfg.cw_cc), sent = [];
+  var live = /^true$/i.test(cfg.digest_live), dry = !!opts.dry, sent = [];
+  var day = Utilities.formatDate(now, KH_TZ, 'EEE MMM d');
+  // Nov 9 2026: each copy has its own City Wide list. client_cc / vendor_cc, falling back to the old shared cw_cc.
+  var ccFor = function (key) { return khEmails_(key in cfg ? cfg[key] : cfg.cw_cc); };
+  // One copy. Live with an outside list: to the list, City Wide copied. Live with a blank list: City Wide only, tagged.
+  // Test mode: City Wide only. A copy is never silently skipped any more.
+  var sendCopy = function (who, outside, cwList, subject, title, its) {
+    var held = live && !outside.length;
+    var to = live && outside.length ? outside : cwList, cc = live && outside.length ? cwList : [];
+    if (!to.length) { sent.push(who + ': nobody to send to'); return; }
+    var name = who === 'client' ? "Ken's Foods" : 'the vendor';
+    var note = held ? 'City Wide only. ' + name + ' did not get this because no ' + (who === 'client' ? "Ken's Foods" : 'vendor') + ' emails are listed yet. Add them on the Kens Hub City Wide review page.' : '';
+    var tag = !live ? ' [TEST, digest_live is FALSE]' : held ? ' [City Wide only, no ' + (who === 'client' ? "Ken's Foods" : 'vendor') + ' emails listed yet]' : '';
+    sent.push(who + (held ? ' (City Wide only)' : '') + ': to ' + to.join(', ') + (cc.length ? ' | cc ' + cc.join(', ') : ''));
+    if (dry) return;
+    khMail_({ to: to.join(','), cc: cc.join(','), subject: subject + tag, body: (note ? note + '\n\n' : '') + khDigestPlain_(its, span), htmlBody: khDigestHtml_(title, span, its, who, note) });
+  };
   // Client copy: checklists, shift reports and Ken's own messages. Never porter emergencies, manager requests or City Wide notes.
   var clientItems = items.filter(function (x) { return x.type !== 'report' || !x.internal; });
-  var clientTo = live ? khEmails_(cfg.client_to) : cc, clientCc = live ? cc : [];
-  if (clientTo.length) {
-    var subj = 'Daily service report - ' + KH_SITE + ' - ' + Utilities.formatDate(now, KH_TZ, 'EEE MMM d') + (live ? '' : ' [TEST, digest_live is FALSE]');
-    khMail_({ to: clientTo.join(','), cc: clientCc.join(','), subject: subj, body: khDigestPlain_(clientItems, span), htmlBody: khDigestHtml_('Daily service report', span, clientItems, 'client') });
-    sent.push('client:' + clientTo.join(','));
-  }
+  sendCopy('client', khEmails_(cfg.client_to), ccFor('client_cc'), 'Daily service report - ' + KH_SITE + ' - ' + day, 'Daily service report', clientItems);
   // Vendor copy: the same work, with Ken's contact details stripped (the backend never stored them for Jotform rows; hub rows drop phone and email).
   var vendorItems = items.map(function (x) { var o = {}; Object.keys(x).forEach(function (k) { if (['phone', 'email', 'cw_notes'].indexOf(k) < 0) o[k] = x[k]; }); return o; });
-  var vendorTo = live ? khEmails_(cfg.vendor_to) : cc, vendorCc = live ? cc : [];
-  if (vendorTo.length) {
-    var subjV = 'Daily porter report - ' + KH_SITE + ' - ' + Utilities.formatDate(now, KH_TZ, 'EEE MMM d') + (live ? '' : ' [TEST, digest_live is FALSE]');
-    khMail_({ to: vendorTo.join(','), cc: vendorCc.join(','), subject: subjV, body: khDigestPlain_(vendorItems, span), htmlBody: khDigestHtml_('Daily porter report', span, vendorItems, 'vendor') });
-    sent.push('vendor:' + vendorTo.join(','));
-  }
-  khConfigSet_('last_daily_at', now.toISOString());
-  return { ok: true, items: items.length, since: sinceIso, sent: sent, live: live };
+  sendCopy('vendor', khEmails_(cfg.vendor_to), ccFor('vendor_cc'), 'Daily porter report - ' + KH_SITE + ' - ' + day, 'Daily porter report', vendorItems);
+  if (!dry) khConfigSet_('last_daily_at', now.toISOString());
+  return { ok: true, dry: dry, items: items.length, since: sinceIso, sent: sent, live: live };
 }
 function khDigestWeekly(opts) {
   var cfg = khConfig_(), now = new Date(), items = khAllItems_(7);
@@ -767,11 +779,11 @@ function khDigestPlain_(items, span) {
   out.push('Open the hub: ' + KH_HUB);
   return out.join('\n');
 }
-function khDigestHtml_(title, span, items, audience) {
+function khDigestHtml_(title, span, items, audience, note) {
   var F = 'font-family:Verdana,Arial,sans-serif;', e = khEsc_, cfg = khConfig_();
   var areas = items.filter(function (x) { return x.type === 'area'; }), shifts = items.filter(function (x) { return x.type === 'shift'; }), reports = items.filter(function (x) { return x.type === 'report'; });
   var yes = 0, total = 0, issues = 0; areas.concat(shifts).forEach(function (x) { yes += Number(x.yes) || 0; total += Number(x.total) || 0; if (x.no || x.late) issues++; });
-  var inner = '<p style="margin:0 0 6px;' + F + 'font-size:13px;color:#2d2a26;line-height:1.55;">' + e(KH_SITE) + (cfg.site_address ? ', ' + e(cfg.site_address) : '') + '. Porter rounds and end-of-shift reports from ' + e(span) + '.</p>';
+  var inner = (note ? '<div style="background:#FFF8E1;border:1px solid #E5B423;border-left:4px solid #E5B423;border-radius:6px;padding:10px 14px;margin:0 0 14px;' + F + 'font-size:13px;font-weight:bold;color:#2d2a26;">' + e(note) + '</div>' : '') + '<p style="margin:0 0 6px;' + F + 'font-size:13px;color:#2d2a26;line-height:1.55;">' + e(KH_SITE) + (cfg.site_address ? ', ' + e(cfg.site_address) : '') + '. Porter rounds and end-of-shift reports from ' + e(span) + '.</p>';
   inner += '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:10px 0 18px;"><tr>' + [['Area rounds logged', areas.length], ['End-of-shift reports', shifts.length], ['Tasks completed', yes + ' of ' + total], ['Rounds with an issue', issues]].map(function (p) {
     return '<td width="25%" style="padding:10px 8px;border:1px solid #E5E5E5;text-align:center;"><div style="' + F + 'font-size:20px;font-weight:bold;color:#08203A;">' + e(p[1]) + '</div><div style="' + F + 'font-size:10px;color:#636466;text-transform:uppercase;letter-spacing:0.05em;">' + e(p[0]) + '</div></td>';
   }).join('') + '</tr></table>';
